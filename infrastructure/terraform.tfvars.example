@@ -1,0 +1,12 @@
+# Example Terraform Variables
+# Copy this file to terraform.tfvars and customize
+
+aws_region          = "us-east-1"
+environment         = "prod"
+project_name        = "todo-app"
+dynamodb_table_name = "todo-tasks"
+lambda_function_name = "todo-api-function"
+
+# IMPORTANT: Change this to ensure global uniqueness
+# S3 bucket names must be globally unique across all AWS accounts
+frontend_bucket_name = "todo-app-frontend-YOUR-UNIQUE-ID"
