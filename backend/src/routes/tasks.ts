@@ -53,7 +53,7 @@ router.get('/', async (req: Request, res: Response) => {
  * GET /tasks/:id
  * Get a single task by ID
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   const requestId = (req as any).requestId;
   const { id } = req.params;
   const startTime = Date.now();
@@ -66,10 +66,11 @@ router.get('/:id', async (req: Request, res: Response) => {
     
     if (!task) {
       logInfo('GET /tasks/:id - Task not found', { requestId, taskId: id, duration, statusCode: 404 });
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'Task not found',
       });
+      return;
     }
     
     logInfo('GET /tasks/:id - Success', { requestId, taskId: id, duration, statusCode: 200 });
@@ -93,7 +94,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * POST /tasks
  * Create a new task
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response): Promise<void> => {
   const requestId = (req as any).requestId;
   const startTime = Date.now();
   
@@ -105,10 +106,11 @@ router.post('/', async (req: Request, res: Response) => {
       const duration = Date.now() - startTime;
       logInfo('POST /tasks - Invalid input', { requestId, duration, statusCode: 400 });
       
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Invalid input. Title is required and must be a non-empty string.',
       });
+      return;
     }
     
     const task = await taskService.createTask(req.body);
@@ -140,7 +142,7 @@ router.post('/', async (req: Request, res: Response) => {
  * PATCH /tasks/:id
  * Update a task (title, description, or completion status)
  */
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
   const requestId = (req as any).requestId;
   const { id } = req.params;
   const startTime = Date.now();
@@ -153,10 +155,11 @@ router.patch('/:id', async (req: Request, res: Response) => {
       const duration = Date.now() - startTime;
       logInfo('PATCH /tasks/:id - Invalid input', { requestId, taskId: id, duration, statusCode: 400 });
       
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Invalid input. Provide at least one field to update (title, description, or completed).',
       });
+      return;
     }
     
     const task = await taskService.updateTask(id, req.body);
@@ -164,10 +167,11 @@ router.patch('/:id', async (req: Request, res: Response) => {
     
     if (!task) {
       logInfo('PATCH /tasks/:id - Task not found', { requestId, taskId: id, duration, statusCode: 404 });
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'Task not found',
       });
+      return;
     }
     
     logInfo('PATCH /tasks/:id - Success', {
@@ -196,7 +200,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
  * DELETE /tasks/:id
  * Delete a task
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   const requestId = (req as any).requestId;
   const { id } = req.params;
   const startTime = Date.now();
@@ -209,10 +213,11 @@ router.delete('/:id', async (req: Request, res: Response) => {
     
     if (!deleted) {
       logInfo('DELETE /tasks/:id - Task not found', { requestId, taskId: id, duration, statusCode: 404 });
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'Task not found',
       });
+      return;
     }
     
     logInfo('DELETE /tasks/:id - Success', {

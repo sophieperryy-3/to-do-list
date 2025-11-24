@@ -36,11 +36,11 @@ export default function App() {
     }
   };
 
-  const handleAddTask = async (title: string, description?: string) => {
+  const handleAddTask = async (title: string, description?: string, dueDate?: string) => {
     try {
       setIsAdding(true);
       setError(null);
-      const newTask = await api.createTask({ title, description });
+      const newTask = await api.createTask({ title, description, dueDate });
       setTasks([newTask, ...tasks]); // Add to beginning of list
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
@@ -81,20 +81,20 @@ export default function App() {
       style={{
         maxWidth: '800px',
         margin: '0 auto',
-        padding: '20px',
+        padding: '40px 20px',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
       <header style={{ marginBottom: '32px', textAlign: 'center' }}>
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '32px', color: '#333' }}>
-          📝 DevOps To-Do List
+        <h1 style={{ margin: '0 0 8px 0', fontSize: '42px', color: '#ffffff', fontWeight: '700', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          ✨ My To-Do List
         </h1>
-        <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-          Demonstrating CI/CD, IaC, and DevSecOps best practices
+        <p style={{ margin: 0, color: '#ffffff', fontSize: '18px', opacity: 0.9 }}>
+          Stay organized and get things done
         </p>
       </header>
 
-      <div style={{ marginBottom: '32px' }}>
+      <div style={{ marginBottom: '32px', backgroundColor: '#ffffff', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
         <AddTaskForm onAdd={handleAddTask} isLoading={isAdding} />
       </div>
 
@@ -102,11 +102,12 @@ export default function App() {
         <div
           style={{
             marginBottom: '20px',
-            padding: '12px 16px',
-            backgroundColor: '#ffebee',
-            border: '1px solid #f44336',
-            borderRadius: '8px',
-            color: '#c62828',
+            padding: '16px 20px',
+            backgroundColor: '#ffffff',
+            border: '2px solid #e74c3c',
+            borderRadius: '12px',
+            color: '#c0392b',
+            boxShadow: '0 4px 12px rgba(231, 76, 60, 0.2)',
           }}
         >
           <strong>Error:</strong> {error}
@@ -140,17 +141,14 @@ export default function App() {
         style={{
           marginTop: '48px',
           paddingTop: '24px',
-          borderTop: '1px solid #e0e0e0',
           textAlign: 'center',
-          color: '#999',
-          fontSize: '12px',
+          color: '#ffffff',
+          fontSize: '14px',
+          opacity: 0.8,
         }}
       >
-        <p>
-          Built with React + TypeScript | Backend: Express + Lambda + DynamoDB
-        </p>
-        <p>
-          CI/CD: GitHub Actions | IaC: Terraform | Logs: CloudWatch
+        <p style={{ margin: 0 }}>
+          Made with ❤️ using React + TypeScript
         </p>
       </footer>
     </div>

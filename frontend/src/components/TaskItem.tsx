@@ -21,28 +21,44 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
       style={{
         display: 'flex',
         alignItems: 'flex-start',
-        gap: '12px',
-        padding: '16px',
-        border: '1px solid #e0e0e0',
-        borderRadius: '8px',
-        backgroundColor: task.completed ? '#f5f5f5' : '#ffffff',
+        gap: '14px',
+        padding: '18px',
+        border: '2px solid #ecf0f1',
+        borderRadius: '12px',
+        backgroundColor: task.completed ? '#f8f9fa' : '#ffffff',
+        transition: 'all 0.2s',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+        e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
       <input
         type="checkbox"
         checked={task.completed}
         onChange={(e) => onToggle(task.id, e.target.checked)}
-        style={{ marginTop: '4px', cursor: 'pointer' }}
+        style={{ 
+          marginTop: '4px', 
+          cursor: 'pointer',
+          width: '20px',
+          height: '20px',
+          accentColor: '#4CAF50',
+        }}
       />
       
       <div style={{ flex: 1 }}>
         <h3
           style={{
             margin: '0 0 4px 0',
-            fontSize: '16px',
-            fontWeight: 500,
+            fontSize: '17px',
+            fontWeight: 600,
             textDecoration: task.completed ? 'line-through' : 'none',
-            color: task.completed ? '#888' : '#333',
+            color: task.completed ? '#95a5a6' : '#2c3e50',
           }}
         >
           {task.title}
@@ -51,41 +67,53 @@ export default function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
         {task.description && (
           <p
             style={{
-              margin: '0',
+              margin: '4px 0 0 0',
               fontSize: '14px',
-              color: task.completed ? '#999' : '#666',
+              color: task.completed ? '#95a5a6' : '#7f8c8d',
             }}
           >
             {task.description}
           </p>
         )}
         
-        <p
-          style={{
-            margin: '8px 0 0 0',
-            fontSize: '12px',
-            color: '#999',
-          }}
-        >
-          Created: {new Date(task.createdAt).toLocaleString()}
-        </p>
+        {task.dueDate && (
+          <p
+            style={{
+              margin: '8px 0 0 0',
+              fontSize: '13px',
+              color: new Date(task.dueDate) < new Date() && !task.completed ? '#e74c3c' : '#95a5a6',
+              fontWeight: new Date(task.dueDate) < new Date() && !task.completed ? '600' : '400',
+            }}
+          >
+            📅 Due: {new Date(task.dueDate).toLocaleDateString()}
+            {new Date(task.dueDate) < new Date() && !task.completed && ' (Overdue!)'}
+          </p>
+        )}
       </div>
       
       <button
         onClick={() => onDelete(task.id)}
         style={{
-          padding: '6px 12px',
-          backgroundColor: '#ff4444',
+          padding: '8px 16px',
+          backgroundColor: '#e74c3c',
           color: 'white',
           border: 'none',
-          borderRadius: '4px',
+          borderRadius: '8px',
           cursor: 'pointer',
           fontSize: '14px',
+          fontWeight: '600',
+          transition: 'all 0.2s',
         }}
-        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#cc0000')}
-        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#ff4444')}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = '#c0392b';
+          e.currentTarget.style.transform = 'scale(1.05)';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = '#e74c3c';
+          e.currentTarget.style.transform = 'scale(1)';
+        }}
       >
-        Delete
+        🗑️ Delete
       </button>
     </div>
   );

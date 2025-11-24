@@ -9,6 +9,7 @@ export interface Task {
   id: string;              // Unique identifier (UUID)
   title: string;           // Task title (required)
   description?: string;    // Optional task description
+  dueDate?: string;        // Optional due date (ISO 8601)
   completed: boolean;      // Completion status
   createdAt: string;       // ISO 8601 timestamp
   updatedAt: string;       // ISO 8601 timestamp
@@ -20,6 +21,7 @@ export interface Task {
 export interface CreateTaskInput {
   title: string;
   description?: string;
+  dueDate?: string;
 }
 
 /**
@@ -28,6 +30,7 @@ export interface CreateTaskInput {
 export interface UpdateTaskInput {
   title?: string;
   description?: string;
+  dueDate?: string;
   completed?: boolean;
 }
 
@@ -51,6 +54,11 @@ export function validateCreateTaskInput(input: unknown): input is CreateTaskInpu
     return false;
   }
   
+  // Due date is optional but must be a string if provided
+  if (data.dueDate !== undefined && typeof data.dueDate !== 'string') {
+    return false;
+  }
+  
   return true;
 }
 
@@ -65,7 +73,7 @@ export function validateUpdateTaskInput(input: unknown): input is UpdateTaskInpu
   const data = input as Record<string, unknown>;
   
   // At least one field must be provided
-  if (!data.title && !data.description && data.completed === undefined) {
+  if (!data.title && !data.description && !data.dueDate && data.completed === undefined) {
     return false;
   }
   
@@ -76,6 +84,11 @@ export function validateUpdateTaskInput(input: unknown): input is UpdateTaskInpu
   
   // Description must be a string if provided
   if (data.description !== undefined && typeof data.description !== 'string') {
+    return false;
+  }
+  
+  // Due date must be a string if provided
+  if (data.dueDate !== undefined && typeof data.dueDate !== 'string') {
     return false;
   }
   
