@@ -21,5 +21,5 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 'warn',
     'no-console': 'off', // We use Winston for logging, but allow console for local dev
   },
-  ignorePatterns: ['dist', 'node_modules', '*.cjs'],
+  ignorePatterns: ['dist', 'node_modules', 'tests', '*.cjs'],
 };
