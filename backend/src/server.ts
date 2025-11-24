@@ -19,6 +19,7 @@ const app = express();
  * Every request gets a unique ID for tracing through logs
  */
 app.use((req: Request, _res: Response, next: NextFunction) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (req as any).requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   next();
 });
@@ -28,6 +29,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
  * Log every incoming request with method, path, and request ID
  */
 app.use((req: Request, _res: Response, next: NextFunction) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestId = (req as any).requestId;
   logInfo('Incoming request', {
     requestId,
@@ -85,6 +87,7 @@ app.use((_req: Request, res: Response) => {
  * Catches any unhandled errors and returns a 500 response
  */
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestId = (req as any).requestId;
   logError('Unhandled error', err, { requestId, path: req.path });
   

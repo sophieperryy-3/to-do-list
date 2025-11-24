@@ -17,6 +17,7 @@ const router = Router();
  * Get all tasks
  */
 router.get('/', async (req: Request, res: Response) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestId = (req as any).requestId;
   const startTime = Date.now();
   
@@ -54,6 +55,7 @@ router.get('/', async (req: Request, res: Response) => {
  * Get a single task by ID
  */
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestId = (req as any).requestId;
   const { id } = req.params;
   const startTime = Date.now();
@@ -95,6 +97,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  * Create a new task
  */
 router.post('/', async (req: Request, res: Response): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestId = (req as any).requestId;
   const startTime = Date.now();
   
@@ -143,6 +146,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
  * Update a task (title, description, or completion status)
  */
 router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestId = (req as any).requestId;
   const { id } = req.params;
   const startTime = Date.now();
@@ -201,6 +205,7 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
  * Delete a task
  */
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestId = (req as any).requestId;
   const { id } = req.params;
   const startTime = Date.now();

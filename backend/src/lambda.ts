@@ -16,6 +16,7 @@ const server = awsServerlessExpress.createServer(app);
  * Lambda handler function
  * This is the entry point when deployed to AWS Lambda
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const handler = (event: any, context: any) => {
   logInfo('Lambda invocation', {
     requestId: context.requestId,
