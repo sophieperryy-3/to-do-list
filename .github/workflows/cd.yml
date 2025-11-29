@@ -84,6 +84,13 @@ jobs:
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }}/ --delete
           echo "✅ Frontend deployed to S3!"
 
+      - name: 📊 Deployment metrics
+        run: |
+          echo "Deployment completed at: $(date)"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Deployed by: ${{ github.actor }}"
+          echo "Branch: ${{ github.ref_name }}"
+
       - name: 🎉 Deployment complete
         run: |
           echo "================================"
@@ -91,6 +98,11 @@ jobs:
           echo "================================"
           echo "Frontend deployed to S3"
           echo "Application is live!"
+          echo ""
+          echo "Deployment Info:"
+          echo "  Time: $(date)"
+          echo "  Commit: ${{ github.sha }}"
+          echo "  By: ${{ github.actor }}"
 
   # Summary
   deployment-summary:
