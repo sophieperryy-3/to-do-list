@@ -1,6 +1,3 @@
-# CI Pipeline - Lint, Test, Build
-# This runs on every push and shows quality gates
-
 name: CI Pipeline
 
 on:
@@ -11,126 +8,113 @@ on:
 
 jobs:
   backend-ci:
-    name: Backend CI (Lint, Test, Build)
+    name: Backend CI
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         working-directory: backend
         run: npm install
 
-      - name: 🔍 Run ESLint
+      - name: Run ESLint
         working-directory: backend
         run: npm run lint || echo "Linting completed with warnings"
         continue-on-error: true
 
-      - name: 🧪 Run tests
+      - name: Run tests
         working-directory: backend
         run: npm test
 
-      - name: 🏗️ Build TypeScript
+      - name: Build TypeScript
         working-directory: backend
         run: npm run build
 
-      - name: ✅ Backend CI Complete
-        run: echo "Backend passed all quality gates!"
+      - name: Backend CI Complete
+        run: echo "Backend passed all quality gates"
 
   frontend-ci:
-    name: Frontend CI (Lint, Test, Build)
+    name: Frontend CI
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         working-directory: frontend
         run: npm install
 
-      - name: 🔍 Run ESLint
+      - name: Run ESLint
         working-directory: frontend
         run: npm run lint
 
-      - name: 🧪 Run tests
+      - name: Run tests
         working-directory: frontend
         run: npm test
 
-      - name: 🏗️ Build application
+      - name: Build application
         working-directory: frontend
         run: npm run build
         env:
           VITE_API_URL: http://localhost:3000
 
-      - name: ✅ Frontend CI Complete
-        run: echo "Frontend passed all quality gates!"
+      - name: Frontend CI Complete
+        run: echo "Frontend passed all quality gates"
 
-  # Security scanning (DevSecOps)
   security-scan:
-    name: 🔒 Security Scan (DevSecOps)
+    name: Security Scan
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 🔍 Backend security audit
+      - name: Backend security audit
         working-directory: backend
         run: |
           npm install
-          npm audit --audit-level=moderate || echo "⚠️ Vulnerabilities found"
+          npm audit --audit-level=moderate || echo "Vulnerabilities found"
         continue-on-error: true
 
-      - name: 🔍 Frontend security audit
+      - name: Frontend security audit
         working-directory: frontend
         run: |
           npm install
-          npm audit --audit-level=moderate || echo "⚠️ Vulnerabilities found"
+          npm audit --audit-level=moderate || echo "Vulnerabilities found"
         continue-on-error: true
 
-      - name: ✅ Security scan complete
-        run: echo "✅ DevSecOps: Security scanning integrated into pipeline"
+      - name: Security scan complete
+        run: echo "DevSecOps - Security scanning integrated"
 
   summary:
-    name: ✅ CI Summary
+    name: CI Summary
     runs-on: ubuntu-latest
     needs: [backend-ci, frontend-ci, security-scan]
     if: always()
     
     steps:
-      - name: 🎉 All CI Checks Passed
+      - name: Pipeline Complete
         run: |
-          echo "================================"
-          echo "✅ CI Pipeline Complete!"
-          echo "================================"
-          echo "✅ Backend: Lint, Test, Build - PASSED"
-          echo "✅ Frontend: Lint, Test, Build - PASSED"
-          echo "✅ Security: Vulnerability Scan - COMPLETED"
-          echo "================================"
-          echo ""
-          echo "🎯 Pipeline Features:"
-          echo "  ✓ Automated Testing"
-          echo "  ✓ Code Quality (Linting)"
-          echo "  ✓ Security Scanning (DevSecOps)"
-          echo "  ✓ Build Verification"
-          echo "  ✓ Parallel Execution"
-          echo "  ✓ Quality Gates"
-          echo ""
-          echo "Ready for deployment!"
+          echo "CI Pipeline Complete"
+          echo "Backend: PASSED"
+          echo "Frontend: PASSED"
+          echo "Security: COMPLETED"
+          echo "Ready for deployment"
