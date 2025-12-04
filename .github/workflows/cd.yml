@@ -45,11 +45,67 @@ jobs:
       - name: ✅ CI checks passed
         run: echo "All quality gates passed - ready for deployment!"
 
+  # Deploy infrastructure with Terraform
+  deploy-infrastructure:
+    name: 🏗️ Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: ci-checks
+    outputs:
+      api_url: ${{ steps.terraform.outputs.api_url }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+          terraform_wrapper: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Build and package Lambda
+        working-directory: backend
+        run: |
+          npm install
+          npm run build
+          cd dist && zip -r ../lambda-deployment.zip . -q && cd ..
+          zip -r lambda-deployment.zip node_modules -q
+          cp lambda-deployment.zip ../infrastructure-simple/
+
+      - name: 🔑 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🏗️ Terraform Init
+        working-directory: infrastructure-simple
+        run: terraform init
+
+      - name: 🚀 Terraform Apply
+        working-directory: infrastructure-simple
+        run: terraform apply -auto-approve
+
+      - name: 📤 Get API URL
+        id: terraform
+        working-directory: infrastructure-simple
+        run: |
+          API_URL=$(terraform output -raw api_endpoint)
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo "API Endpoint: $API_URL"
+
   # Deploy frontend to S3
   deploy-frontend:
     name: 🚀 Deploy Frontend to S3
     runs-on: ubuntu-latest
-    needs: ci-checks
+    needs: deploy-infrastructure
     
     steps:
       - name: 📥 Checkout code
@@ -68,7 +124,7 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_URL: http://localhost:3000
+          VITE_API_URL: ${{ needs.deploy-infrastructure.outputs.api_url }}
 
       - name: 🔑 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -86,18 +142,11 @@ jobs:
 
       - name: 📊 Deployment metrics
         run: |
-          echo "Deployment completed at: $(date)"
-          echo "Commit SHA: ${{ github.sha }}"
-          echo "Deployed by: ${{ github.actor }}"
-          echo "Branch: ${{ github.ref_name }}"
-
-      - name: 🎉 Deployment complete
-        run: |
           echo "================================"
           echo "✅ Deployment Successful!"
           echo "================================"
-          echo "Frontend deployed to S3"
-          echo "Application is live!"
+          echo "API: ${{ needs.deploy-infrastructure.outputs.api_url }}"
+          echo "Frontend: http://${{ secrets.S3_BUCKET_NAME }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
           echo ""
           echo "Deployment Info:"
           echo "  Time: $(date)"
@@ -108,7 +157,7 @@ jobs:
   deployment-summary:
     name: 📊 Deployment Summary
     runs-on: ubuntu-latest
-    needs: [ci-checks, deploy-frontend]
+    needs: [ci-checks, deploy-infrastructure, deploy-frontend]
     
     steps:
       - name: 🎉 Deployment Pipeline Complete
@@ -117,11 +166,13 @@ jobs:
           echo "🚀 CD Pipeline Complete!"
           echo "================================"
           echo "✅ CI Checks: PASSED"
-          echo "✅ Frontend Deployment: SUCCESS"
+          echo "✅ Infrastructure: DEPLOYED"
+          echo "✅ Backend Lambda: DEPLOYED"
+          echo "✅ Frontend: DEPLOYED"
           echo "================================"
-          echo "Application is live and ready!"
+          echo "Full-stack application is live!"
           echo ""
           echo "This demonstrates:"
           echo "- Continuous Integration (automated testing)"
-          echo "- Continuous Delivery (automated build)"
+          echo "- Infrastructure as Code (Terraform)"
           echo "- Continuous Deployment (automated deployment to AWS)"
