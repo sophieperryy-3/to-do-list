@@ -85,12 +85,12 @@ export default function App() {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      <header style={{ marginBottom: '32px', textAlign: 'center' }}>
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '42px', color: '#ffffff', fontWeight: '700', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          ✨ My To-Do List
+      <header style={{ marginBottom: '40px', textAlign: 'center' }}>
+        <h1 style={{ margin: '0 0 12px 0', fontSize: '48px', color: '#ffffff', fontWeight: '700', letterSpacing: '-0.5px' }}>
+          Task Manager
         </h1>
-        <p style={{ margin: 0, color: '#ffffff', fontSize: '18px', opacity: 0.9 }}>
-          Stay organized and get things done
+        <p style={{ margin: 0, color: '#ffffff', fontSize: '16px', opacity: 0.85, fontWeight: '400' }}>
+          Professional task management powered by AWS
         </p>
       </header>
 
@@ -137,20 +137,7 @@ export default function App() {
         onDelete={handleDeleteTask}
       />
 
-      <footer
-        style={{
-          marginTop: '48px',
-          paddingTop: '24px',
-          textAlign: 'center',
-          color: '#ffffff',
-          fontSize: '14px',
-          opacity: 0.8,
-        }}
-      >
-        <p style={{ margin: 0 }}>
-          Made with ❤️ using React + TypeScript
-        </p>
-      </footer>
+
     </div>
   );
 }
