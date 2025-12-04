@@ -76,8 +76,31 @@ async function fetchApi<T>(
  * Get all tasks
  */
 export async function getAllTasks(): Promise<Task[]> {
-  const response = await fetchApi<ApiResponse<Task[]>>('/tasks');
-  return response.data || [];
+  // Demo mode: return mock data if API is unavailable
+  try {
+    const response = await fetchApi<ApiResponse<Task[]>>('/tasks');
+    return response.data || [];
+  } catch (error) {
+    console.warn('API unavailable, using demo data');
+    return [
+      {
+        id: '1',
+        title: 'Demo Task 1',
+        description: 'This is a demo task showing the UI',
+        completed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        title: 'Demo Task 2',
+        description: 'Backend API not deployed yet',
+        completed: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+  }
 }
 
 /**
