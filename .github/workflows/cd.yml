@@ -45,23 +45,17 @@ jobs:
       - name: ✅ CI checks passed
         run: echo "All quality gates passed - ready for deployment!"
 
-  # Deploy infrastructure with Terraform
-  deploy-infrastructure:
-    name: 🏗️ Deploy Infrastructure
+  # Deploy backend Lambda
+  deploy-backend:
+    name: 🚀 Deploy Backend Lambda
     runs-on: ubuntu-latest
     needs: ci-checks
     outputs:
-      api_url: ${{ steps.terraform.outputs.api_url }}
+      api_url: ${{ steps.get-api.outputs.api_url }}
     
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-
-      - name: 🔧 Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-          terraform_wrapper: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -75,7 +69,6 @@ jobs:
           npm run build
           cd dist && zip -r ../lambda-deployment.zip . -q && cd ..
           zip -r lambda-deployment.zip node_modules -q
-          cp lambda-deployment.zip ../infrastructure-simple/
 
       - name: 🔑 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -85,19 +78,23 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: 🏗️ Terraform Init
-        working-directory: infrastructure-simple
-        run: terraform init
+      - name: 📤 Upload to S3
+        working-directory: backend
+        run: |
+          aws s3 cp lambda-deployment.zip s3://todo-lambda-code-707629289323/lambda-deployment.zip
 
-      - name: 🚀 Terraform Apply
-        working-directory: infrastructure-simple
-        run: terraform apply -auto-approve
+      - name: 🚀 Update Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name todo-api \
+            --s3-bucket todo-lambda-code-707629289323 \
+            --s3-key lambda-deployment.zip
 
       - name: 📤 Get API URL
-        id: terraform
-        working-directory: infrastructure-simple
+        id: get-api
         run: |
-          API_URL=$(terraform output -raw api_endpoint)
+          API_ID=$(aws apigatewayv2 get-apis --query "Items[?Name=='todo-api'].ApiId" --output text)
+          API_URL="https://${API_ID}.execute-api.${{ env.AWS_REGION }}.amazonaws.com"
           echo "api_url=$API_URL" >> $GITHUB_OUTPUT
           echo "API Endpoint: $API_URL"
 
@@ -105,7 +102,7 @@ jobs:
   deploy-frontend:
     name: 🚀 Deploy Frontend to S3
     runs-on: ubuntu-latest
-    needs: deploy-infrastructure
+    needs: deploy-backend
     
     steps:
       - name: 📥 Checkout code
@@ -124,7 +121,7 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_URL: ${{ needs.deploy-infrastructure.outputs.api_url }}
+          VITE_API_URL: ${{ needs.deploy-backend.outputs.api_url }}
 
       - name: 🔑 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -145,7 +142,7 @@ jobs:
           echo "================================"
           echo "✅ Deployment Successful!"
           echo "================================"
-          echo "API: ${{ needs.deploy-infrastructure.outputs.api_url }}"
+          echo "API: ${{ needs.deploy-backend.outputs.api_url }}"
           echo "Frontend: http://${{ secrets.S3_BUCKET_NAME }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
           echo ""
           echo "Deployment Info:"
@@ -157,7 +154,7 @@ jobs:
   deployment-summary:
     name: 📊 Deployment Summary
     runs-on: ubuntu-latest
-    needs: [ci-checks, deploy-infrastructure, deploy-frontend]
+    needs: [ci-checks, deploy-backend, deploy-frontend]
     
     steps:
       - name: 🎉 Deployment Pipeline Complete
