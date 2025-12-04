@@ -134,7 +134,7 @@ jobs:
       - name: 📤 Deploy to S3
         working-directory: frontend
         run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }}/ --delete
+          aws s3 sync dist/ s3://todo-frontend-sophie-98633-707629289323/ --delete
           echo "✅ Frontend deployed to S3!"
 
       - name: 📊 Deployment metrics
@@ -143,7 +143,7 @@ jobs:
           echo "✅ Deployment Successful!"
           echo "================================"
           echo "API: ${{ needs.deploy-backend.outputs.api_url }}"
-          echo "Frontend: http://${{ secrets.S3_BUCKET_NAME }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
+          echo "Frontend: http://todo-frontend-sophie-98633-707629289323.s3-website-us-east-1.amazonaws.com"
           echo ""
           echo "Deployment Info:"
           echo "  Time: $(date)"
