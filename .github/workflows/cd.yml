@@ -81,13 +81,13 @@ jobs:
       - name: 📤 Upload to S3
         working-directory: backend
         run: |
-          aws s3 cp lambda-deployment.zip s3://todo-lambda-code-707629289323/lambda-deployment.zip
+          aws s3 cp lambda-deployment.zip s3://todo-lambda-code-381541067682/lambda-deployment.zip
 
       - name: 🚀 Update Lambda function
         run: |
           aws lambda update-function-code \
             --function-name todo-api \
-            --s3-bucket todo-lambda-code-707629289323 \
+            --s3-bucket todo-lambda-code-381541067682 \
             --s3-key lambda-deployment.zip
 
       - name: 📤 Get API URL
@@ -134,7 +134,7 @@ jobs:
       - name: 📤 Deploy to S3
         working-directory: frontend
         run: |
-          aws s3 sync dist/ s3://todo-frontend-sophie-98633-707629289323/ --delete
+          aws s3 sync dist/ s3://todo-frontend-sophie-98633-381541067682/ --delete
           echo "✅ Frontend deployed to S3!"
 
       - name: 📊 Deployment metrics
@@ -143,7 +143,7 @@ jobs:
           echo "✅ Deployment Successful!"
           echo "================================"
           echo "API: ${{ needs.deploy-backend.outputs.api_url }}"
-          echo "Frontend: http://todo-frontend-sophie-98633-707629289323.s3-website-us-east-1.amazonaws.com"
+          echo "Frontend: http://todo-frontend-sophie-98633-381541067682.s3-website-us-east-1.amazonaws.com"
           echo ""
           echo "Deployment Info:"
           echo "  Time: $(date)"
