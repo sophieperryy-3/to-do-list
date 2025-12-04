@@ -2,6 +2,8 @@
 
 A production-grade To-Do List application demonstrating modern DevOps practices, CI/CD pipelines, Infrastructure as Code, and DevSecOps integration.
 
+🚀 **Live Demo**: [View Application](http://todo-frontend-simple-707629289323.s3-website-us-east-1.amazonaws.com)
+
 ## 🏗️ Architecture Overview
 
 ### Technology Stack
