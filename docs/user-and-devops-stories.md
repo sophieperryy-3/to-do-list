@@ -1,218 +1,215 @@
-# User Stories and DevOps Stories
+# User Stories - DevOps Task Manager
 
-## 📱 User Stories (Application Features)
-
-### US-1: Add Tasks
-**As a** busy student  
-**I want to** add tasks to a to-do list with a title and optional description  
-**So that** I don't forget work I need to complete
-
-**Acceptance Criteria**:
-- User can enter a task title (required)
-- User can optionally add a description
-- Task appears immediately in the list after creation
-- Empty titles are rejected with a clear error message
+This document contains user stories that demonstrate how the DevOps pipeline and infrastructure support different stakeholders.
 
 ---
 
-### US-2: Mark Tasks Complete
-**As a** user  
-**I want to** mark tasks as complete or incomplete  
-**So that** I can see what I've finished and what's still pending
+## Story 1: Rapid Development Iteration
 
-**Acceptance Criteria**:
-- User can toggle task completion status with a single click
-- Completed tasks are visually distinct (e.g., strikethrough)
-- Completion status persists across page refreshes
+**As a** Software Developer  
+**I want to** deploy code changes to production automatically  
+**So that** I can deliver features quickly without manual deployment steps
 
----
+**Acceptance Criteria:**
+- Code pushed to main branch triggers automated pipeline
+- All tests must pass before deployment
+- Deployment completes in under 5 minutes
+- Smoke tests validate the deployment
 
-### US-3: Delete Tasks
-**As a** user  
-**I want to** delete tasks I no longer need  
-**So that** my list stays clean and relevant
-
-**Acceptance Criteria**:
-- User can delete any task
-- Deleted tasks are removed immediately from the UI
-- Deletion is permanent (no undo in this version)
+**Pipeline Features Demonstrated:**
+- Continuous Deployment workflow
+- Automated testing (unit tests + linting)
+- Automated smoke tests
+- GitHub Actions automation
 
 ---
 
-### US-4: Persistent Cloud Storage
-**As a** user  
-**I want to** have my tasks stored in the cloud  
-**So that** I can access them from multiple devices and they survive browser refreshes
+## Story 2: Production Health Monitoring
 
-**Acceptance Criteria**:
-- Tasks are stored in AWS DynamoDB
-- Tasks persist across browser sessions
-- Tasks are accessible from any device with internet connection
+**As a** DevOps Engineer  
+**I want to** monitor my application's health in real-time  
+**So that** I can detect and respond to issues before users are impacted
 
----
+**Acceptance Criteria:**
+- Dashboard shows request volume, errors, and latency
+- Alarms trigger when error thresholds are exceeded
+- Metrics are available within 1 minute of events
+- Historical data is retained for analysis
 
-### US-5: View All Tasks
-**As a** user  
-**I want to** see all my tasks in a clear list  
-**So that** I can quickly understand what needs to be done
-
-**Acceptance Criteria**:
-- All tasks are displayed in a list format
-- Most recent tasks appear first
-- UI clearly shows task title, description, and completion status
+**Pipeline Features Demonstrated:**
+- CloudWatch Dashboard with real-time metrics
+- 4 automated alarms (errors, performance, throttling)
+- Structured logging to CloudWatch Logs
+- Production observability
 
 ---
 
-## 🔧 DevOps Stories (Pipeline & Infrastructure)
+## Story 3: Secure Task Management
 
-### DS-1: Automated Unit Testing
-**As a** DevOps engineer  
-**I want** automated unit tests to run on each push  
-**So that** broken code is caught before integration and deployment
+**As an** End User  
+**I want to** manage my tasks through a secure, fast web application  
+**So that** my data is protected and the app loads quickly worldwide
 
-**Acceptance Criteria**:
-- Unit tests run automatically in CI pipeline
-- Pipeline fails if any test fails
-- Test results are visible in GitHub Actions logs
-- Test coverage includes critical business logic (task CRUD operations)
+**Acceptance Criteria:**
+- Application uses HTTPS encryption
+- Tasks persist across sessions
+- App loads in under 2 seconds globally
+- Data is stored securely in the cloud
 
-**Implementation**: Jest tests in `backend/tests/` and `frontend/src/__tests__/`
-
----
-
-### DS-2: Code Quality Enforcement
-**As a** DevOps engineer  
-**I want** linting and static analysis to run automatically  
-**So that** code quality standards are enforced consistently
-
-**Acceptance Criteria**:
-- ESLint runs on every push
-- TypeScript type checking is enforced
-- Pipeline fails if linting errors are found
-- Consistent code style across frontend and backend
-
-**Implementation**: ESLint + TypeScript in CI pipeline
+**Pipeline Features Demonstrated:**
+- CloudFront CDN with HTTPS
+- Global edge caching
+- DynamoDB for data persistence
+- S3 + CloudFront architecture
 
 ---
 
-### DS-3: Dependency Vulnerability Scanning
-**As a** security-conscious developer  
-**I want** dependency vulnerability scans on every build  
-**So that** insecure libraries are detected early (shift-left security)
+## Story 4: Controlled Production Releases
 
-**Acceptance Criteria**:
-- `npm audit` runs in CI pipeline
-- High/critical vulnerabilities fail the build
-- Scan results are logged for compliance evidence
-- Dependencies are regularly updated
+**As a** Release Manager  
+**I want to** manually approve deployments to production  
+**So that** I can review changes before they affect users
 
-**Implementation**: npm audit + GitHub CodeQL in `.github/workflows/ci.yml`
+**Acceptance Criteria:**
+- Staging branch requires manual approval
+- Deployment waits for human verification
+- Approval process is tracked and auditable
+- Can deploy to production after approval
 
----
-
-### DS-4: Automated Deployment Pipeline
-**As a** release manager  
-**I want** an automated deployment pipeline  
-**So that** releases to production are consistent, repeatable, and low-risk
-
-**Acceptance Criteria**:
-- Deployments trigger automatically on merge to `main`
-- Infrastructure is provisioned via Terraform (IaC)
-- Application artifacts are deployed without manual intervention
-- Rollback capability exists (via Terraform state)
-
-**Implementation**: GitHub Actions deploy workflow + Terraform
+**Pipeline Features Demonstrated:**
+- Continuous Delivery workflow (staging branch)
+- GitHub Environments with approval gates
+- Separate deployment strategies
+- Controlled release process
 
 ---
 
-### DS-5: Infrastructure as Code
-**As a** DevOps engineer  
-**I want** all infrastructure defined as code  
+## Story 5: Infrastructure Provisioning
+
+**As an** Infrastructure Engineer  
+**I want to** define all infrastructure as code  
 **So that** environments are reproducible and version-controlled
 
-**Acceptance Criteria**:
+**Acceptance Criteria:**
 - All AWS resources defined in Terraform
-- Infrastructure changes go through code review
-- Infrastructure state is managed centrally
-- Documentation explains how to provision from scratch
+- Infrastructure changes are peer-reviewed via PRs
+- Environments can be created/destroyed on demand
+- Infrastructure is documented and maintainable
 
-**Implementation**: Terraform in `infrastructure/` directory
-
----
-
-### DS-6: Compliance Evidence & Audit Logs
-**As a** compliance officer  
-**I want** stored logs of test and security scan results  
-**So that** I can evidence that quality checks were performed
-
-**Acceptance Criteria**:
-- CI pipeline logs are retained in GitHub Actions
-- Test results are clearly visible
-- Security scan results are logged
-- Deployment history is traceable
-
-**Implementation**: GitHub Actions artifacts + CloudWatch logs
+**Pipeline Features Demonstrated:**
+- Terraform Infrastructure as Code
+- Modular infrastructure files (lambda.tf, s3.tf, etc.)
+- Version-controlled infrastructure
+- Reproducible deployments
 
 ---
 
-### DS-7: Structured Logging & Observability
-**As a** site reliability engineer  
-**I want** structured JSON logs with request tracing  
-**So that** I can debug issues and monitor application health
+## Story 6: Security Compliance
 
-**Acceptance Criteria**:
-- All backend logs are JSON formatted
-- Each request has a unique correlation ID
-- Logs include timestamp, level, message, and context
-- Logs are centralized in CloudWatch
+**As a** Security Engineer  
+**I want to** ensure the application follows security best practices  
+**So that** we minimize vulnerabilities and protect user data
 
-**Implementation**: Winston logger in `backend/src/utils/logger.ts`
+**Acceptance Criteria:**
+- All traffic uses HTTPS encryption
+- IAM roles follow least-privilege principle
+- Automated security scanning in CI pipeline
+- Dependencies are scanned for vulnerabilities
 
----
-
-### DS-8: Continuous Integration & Continuous Delivery
-**As a** development team  
-**I want** CI/CD pipelines that provide fast feedback  
-**So that** we can iterate quickly while maintaining quality
-
-**Acceptance Criteria**:
-- CI runs in under 5 minutes
-- Developers get immediate feedback on PRs
-- Main branch is always deployable
-- Deployments complete in under 10 minutes
-
-**Implementation**: Optimized GitHub Actions workflows
+**Pipeline Features Demonstrated:**
+- HTTPS via CloudFront
+- IAM roles with minimal permissions
+- npm audit in CI pipeline
+- Secure credential management (GitHub Secrets)
 
 ---
 
-## 🎯 Story Mapping to Pipeline Stages
+## Story 7: Quality Assurance
 
-| Story | Pipeline Stage | Evidence Location |
-|-------|---------------|-------------------|
-| DS-1 | CI: Test | GitHub Actions → CI workflow → Test step |
-| DS-2 | CI: Lint | GitHub Actions → CI workflow → Lint step |
-| DS-3 | CI: Security | GitHub Actions → CI workflow → Security scan step |
-| DS-4 | CD: Deploy | GitHub Actions → Deploy workflow → Deploy steps |
-| DS-5 | CD: Infrastructure | GitHub Actions → Deploy workflow → Terraform apply |
-| DS-6 | All stages | GitHub Actions logs + CloudWatch |
-| DS-7 | Runtime | AWS CloudWatch Logs |
-| DS-8 | All stages | Complete workflow execution time |
+**As a** QA Engineer  
+**I want to** automated tests to run on every code change  
+**So that** bugs are caught before reaching production
+
+**Acceptance Criteria:**
+- Unit tests run automatically on every commit
+- Linting enforces code quality standards
+- Smoke tests validate deployments
+- Failed tests block deployment
+
+**Pipeline Features Demonstrated:**
+- Jest unit tests (frontend + backend)
+- ESLint code quality checks
+- Automated smoke tests post-deployment
+- Quality gates in pipeline
 
 ---
 
-## 📊 Demonstrating Stories in Your Presentation
+## Story 8: Incident Response
 
-### For User Stories:
-1. Show the live application
-2. Demonstrate each feature (add, complete, delete tasks)
-3. Show persistence by refreshing the page
+**As an** Operations Engineer  
+**I want to** be alerted immediately when production issues occur  
+**So that** I can respond quickly and minimize downtime
 
-### For DevOps Stories:
-1. **DS-1 & DS-2**: Show GitHub Actions CI workflow with passing tests and lint
-2. **DS-3**: Point out security scan step and npm audit results
-3. **DS-4 & DS-5**: Walk through deploy workflow and Terraform code
-4. **DS-6**: Show GitHub Actions logs as compliance evidence
-5. **DS-7**: Show CloudWatch logs with request IDs
-6. **DS-8**: Show workflow execution times and green checkmarks
+**Acceptance Criteria:**
+- Alarms trigger within 5 minutes of issues
+- Dashboard provides real-time visibility
+- Logs are searchable and structured
+- Can identify root cause quickly
 
-This demonstrates a mature DevOps practice where every requirement is traceable to implementation and evidence.
+**Pipeline Features Demonstrated:**
+- CloudWatch Alarms (4 different monitors)
+- Real-time metrics dashboard
+- Structured JSON logging
+- CloudWatch Logs integration
+
+---
+
+## Story 9: Team Collaboration
+
+**As a** Development Team  
+**We want to** work on features independently without conflicts  
+**So that** multiple developers can contribute simultaneously
+
+**Acceptance Criteria:**
+- CI runs on all branches and pull requests
+- Code review process via GitHub PRs
+- Automated testing prevents breaking changes
+- Clear deployment process documented
+
+**Pipeline Features Demonstrated:**
+- CI triggers on all branches
+- Pull request template
+- Automated testing on PRs
+- Git-based workflow
+
+---
+
+## Story 10: Cost Optimization
+
+**As a** Cloud Architect  
+**I want to** use serverless architecture  
+**So that** we only pay for actual usage and minimize operational costs
+
+**Acceptance Criteria:**
+- No servers to manage or pay for when idle
+- Auto-scaling based on demand
+- Pay-per-request pricing model
+- Minimal operational overhead
+
+**Pipeline Features Demonstrated:**
+- Lambda (serverless compute)
+- DynamoDB (serverless database)
+- S3 + CloudFront (serverless hosting)
+- Pay-per-use pricing model
+
+---
+
+## How These Stories Map to Your Demo
+
+Use these stories to structure your 20-minute presentation:
+1. Pick 5-7 stories that best showcase your pipeline
+2. Start each section with the user story
+3. Demonstrate how your pipeline fulfills it
+4. Show the actual feature working (live demo or screenshots)
+
+This approach shows you understand **why** DevOps practices matter, not just **how** to implement them!
