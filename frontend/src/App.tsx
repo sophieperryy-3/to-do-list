@@ -36,13 +36,15 @@ export default function App() {
     try {
       setIsLoading(true);
       setError(null);
-      const allTasks = await api.getAllTasks();
-      // Filter to only show this user's tasks
       const userId = getUserId();
-      const userTasks = allTasks.filter(task => 
-        task.description?.startsWith(`[${userId}]`) || task.id.includes(userId)
-      );
-      setTasks(userTasks);
+      
+      // For demo: use localStorage to store tasks per device
+      const localTasks = localStorage.getItem(`tasks-${userId}`);
+      if (localTasks) {
+        setTasks(JSON.parse(localTasks));
+      } else {
+        setTasks([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tasks');
       console.error('Failed to load tasks:', err);
@@ -55,11 +57,31 @@ export default function App() {
     try {
       setIsAdding(true);
       setError(null);
-      // Tag task with user ID
+      
+      // Create task locally
+      const newTask = {
+        id: `${Date.now()}-${Math.random()}`,
+        title,
+        description,
+        dueDate,
+        completed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      const updatedTasks = [newTask, ...tasks];
+      setTasks(updatedTasks);
+      
+      // Save to localStorage
       const userId = getUserId();
-      const taggedDescription = `[${userId}] ${description || ''}`.trim();
-      const newTask = await api.createTask({ title, description: taggedDescription, dueDate });
-      setTasks([newTask, ...tasks]); // Add to beginning of list
+      localStorage.setItem(`tasks-${userId}`, JSON.stringify(updatedTasks));
+      
+      // Also save to backend for demo purposes
+      try {
+        await api.createTask({ title, description, dueDate });
+      } catch {
+        // Ignore backend errors - localStorage is primary
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
       console.error('Failed to create task:', err);
@@ -71,8 +93,14 @@ export default function App() {
   const handleToggleTask = async (id: string, completed: boolean) => {
     try {
       setError(null);
-      const updatedTask = await api.updateTask(id, { completed });
-      setTasks(tasks.map(t => t.id === id ? updatedTask : t));
+      const updatedTasks = tasks.map(t => 
+        t.id === id ? { ...t, completed, updatedAt: new Date().toISOString() } : t
+      );
+      setTasks(updatedTasks);
+      
+      // Save to localStorage
+      const userId = getUserId();
+      localStorage.setItem(`tasks-${userId}`, JSON.stringify(updatedTasks));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update task');
       console.error('Failed to update task:', err);
@@ -86,8 +114,12 @@ export default function App() {
 
     try {
       setError(null);
-      await api.deleteTask(id);
-      setTasks(tasks.filter(t => t.id !== id));
+      const updatedTasks = tasks.filter(t => t.id !== id);
+      setTasks(updatedTasks);
+      
+      // Save to localStorage
+      const userId = getUserId();
+      localStorage.setItem(`tasks-${userId}`, JSON.stringify(updatedTasks));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete task');
       console.error('Failed to delete task:', err);
