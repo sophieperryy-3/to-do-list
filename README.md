@@ -1,8 +1,17 @@
-# DevOps To-Do List Application
+# DevOps Task Manager - Production CI/CD Pipeline
 
-A production-grade To-Do List application demonstrating modern DevOps practices, CI/CD pipelines, Infrastructure as Code, and DevSecOps integration.
+A production-grade task management application demonstrating enterprise DevOps practices including automated CI/CD pipelines, Infrastructure as Code, real-time monitoring, and secure cloud deployment.
 
-🚀 **Live Demo**: [View Application](https://d18rau9nxg1ucb.cloudfront.net)
+🚀 **Live Demo**: [View Application](https://d18rau9nxg1ucb.cloudfront.net) (HTTPS enabled via CloudFront)
+
+## 🎯 Key Features
+
+✅ **Fully Automated CI/CD** - Zero-touch deployment from git push to production  
+✅ **Infrastructure as Code** - 100% Terraform-managed AWS infrastructure  
+✅ **Production Monitoring** - CloudWatch dashboards with automated alarms  
+✅ **Automated Testing** - Unit tests, linting, and post-deployment smoke tests  
+✅ **Global CDN** - CloudFront distribution with HTTPS encryption  
+✅ **Two Deployment Strategies** - Continuous Deployment (main) + Continuous Delivery (staging with approval)
 
 ## 🏗️ Architecture Overview
 
@@ -30,9 +39,9 @@ A production-grade To-Do List application demonstrating modern DevOps practices,
 
 **S3 + CloudFront for Frontend**:
 - Static site hosting with global CDN
-- HTTPS by default
-- Low latency worldwide
-- Cost-effective
+- HTTPS encryption enabled
+- Low latency worldwide (edge caching)
+- Cost-effective serverless hosting
 
 ## 🚀 DevOps Pipeline Flow
 
@@ -44,17 +53,23 @@ CI Pipeline (GitHub Actions)
     ├─ Install dependencies
     ├─ Lint (ESLint + TypeScript)
     ├─ Unit Tests (Jest)
-    ├─ Security Scan (npm audit + CodeQL)
+    ├─ Security Scan (npm audit)
     └─ Build artifacts
     ↓
 CD Pipeline (on main branch)
-    ├─ Terraform Plan
-    ├─ Terraform Apply (provision infrastructure)
-    ├─ Deploy Backend (Lambda)
+    ├─ Deploy Backend (Lambda via S3)
     ├─ Deploy Frontend (S3 + CloudFront)
-    └─ Smoke Tests
+    ├─ Automated Smoke Tests
+    │  ├─ API health check
+    │  ├─ Create task test
+    │  └─ Frontend availability
+    └─ CloudWatch Monitoring Active
     ↓
 Production Environment (AWS)
+    ├─ Lambda functions serving API
+    ├─ CloudFront distributing frontend globally
+    ├─ DynamoDB storing data
+    └─ CloudWatch monitoring health
 ```
 
 ## 📋 AWS Source Control Limitation
@@ -208,22 +223,28 @@ git push origin main
 # 4. Updates CloudFront
 ```
 
-## 📊 Observability & Logging
+## 📊 Production Monitoring & Observability
 
-All backend logs are automatically sent to **AWS CloudWatch Logs**.
+### CloudWatch Dashboard
+Real-time metrics dashboard showing:
+- Lambda invocations and errors
+- API Gateway request volume and latency
+- Response times and performance metrics
 
-**Log Structure**:
-- JSON formatted logs
-- Request ID for tracing
-- Timestamp, level, message
-- Error stack traces when applicable
+### Automated Alarms
+Four production alarms monitoring:
+1. **Lambda Errors** - Triggers if >5 errors in 5 minutes
+2. **API Gateway 5xx Errors** - Triggers if >10 server errors in 5 minutes  
+3. **Lambda Performance** - Triggers if average response time >3 seconds
+4. **DynamoDB Throttling** - Triggers if database is overloaded
 
-**Viewing Logs**:
-```bash
-aws logs tail /aws/lambda/todo-api-function --follow
-```
+### Smoke Tests
+Automated post-deployment validation:
+- API health endpoint check
+- Task creation functionality test
+- Frontend availability verification
 
-See `docs/logging-and-observability.md` for detailed monitoring setup.
+All logs are sent to **AWS CloudWatch Logs** with structured JSON formatting for easy querying.
 
 ## 🔒 DevSecOps Integration
 
