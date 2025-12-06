@@ -17,6 +17,16 @@ export default function App() {
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Generate or get user session ID
+  const getUserId = () => {
+    let userId = localStorage.getItem('userId');
+    if (!userId) {
+      userId = `user-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('userId', userId);
+    }
+    return userId;
+  };
+
   // Load tasks on mount
   useEffect(() => {
     loadTasks();
@@ -26,8 +36,13 @@ export default function App() {
     try {
       setIsLoading(true);
       setError(null);
-      const fetchedTasks = await api.getAllTasks();
-      setTasks(fetchedTasks);
+      const allTasks = await api.getAllTasks();
+      // Filter to only show this user's tasks
+      const userId = getUserId();
+      const userTasks = allTasks.filter(task => 
+        task.description?.startsWith(`[${userId}]`) || task.id.includes(userId)
+      );
+      setTasks(userTasks);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tasks');
       console.error('Failed to load tasks:', err);
@@ -40,7 +55,10 @@ export default function App() {
     try {
       setIsAdding(true);
       setError(null);
-      const newTask = await api.createTask({ title, description, dueDate });
+      // Tag task with user ID
+      const userId = getUserId();
+      const taggedDescription = `[${userId}] ${description || ''}`.trim();
+      const newTask = await api.createTask({ title, description: taggedDescription, dueDate });
       setTasks([newTask, ...tasks]); // Add to beginning of list
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
