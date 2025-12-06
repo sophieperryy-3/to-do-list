@@ -164,7 +164,7 @@ export AWS_REGION="us-east-1"
 ### Deploy Infrastructure
 
 ```bash
-cd infrastructure
+cd infrastructure-simple
 terraform init
 terraform plan
 terraform apply
@@ -192,21 +192,26 @@ npm run build
 Navigate to: `Settings → Secrets and variables → Actions`
 
 Add these secrets:
-- `AWS_ACCESS_KEY_ID` - AWS access key
-- `AWS_SECRET_ACCESS_KEY` - AWS secret key
-- `AWS_REGION` - e.g., `us-east-1`
+- `AWS_ACCESS_KEY_ID` - AWS access key (from personal AWS account)
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key (from personal AWS account)
+- Note: No session token needed for personal AWS accounts
 
 ### Workflows
 
-**1. CI Pipeline** (`.github/workflows/ci.yml`)
-- Triggers on: Every push and pull request
+**1. CI Pipeline** (`.github/workflows/ci-simple.yml`)
+- Triggers on: Every push to any branch
 - Runs: Lint, test, security scans
 - Purpose: Continuous Integration - catch issues early
 
-**2. Deploy Pipeline** (`.github/workflows/deploy.yml`)
+**2. CD Pipeline** (`.github/workflows/cd.yml`)
 - Triggers on: Push to `main` branch
-- Runs: Full CI checks + infrastructure deployment + application deployment
-- Purpose: Continuous Delivery/Deployment to production
+- Runs: Deploy backend + frontend + automated smoke tests
+- Purpose: Continuous Deployment - automatic to production
+
+**3. Continuous Delivery Pipeline** (`.github/workflows/continuous-delivery.yml`)
+- Triggers on: Push to `staging` branch
+- Runs: Build + test + **manual approval** + deploy
+- Purpose: Controlled releases with human verification
 
 ### Triggering Deployments
 
@@ -251,7 +256,7 @@ All logs are sent to **AWS CloudWatch Logs** with structured JSON formatting for
 Security is integrated throughout the pipeline:
 
 1. **Dependency Scanning**: `npm audit` on every build
-2. **Static Analysis**: CodeQL scans for vulnerabilities
+2. **Linting**: ESLint enforces code quality standards
 3. **Least Privilege IAM**: Terraform creates minimal IAM roles
 4. **Secrets Management**: No secrets in code, only environment variables
 5. **HTTPS Everywhere**: CloudFront enforces HTTPS
@@ -260,12 +265,15 @@ Security is integrated throughout the pipeline:
 
 ```
 .
-├── frontend/              # React + TypeScript frontend
-├── backend/               # Express + TypeScript API
-├── infrastructure/        # Terraform IaC
-├── .github/workflows/     # CI/CD pipelines
-├── docs/                  # Documentation
-└── README.md             # This file
+├── frontend/                    # React + TypeScript frontend
+├── backend/                     # Express + TypeScript API
+├── infrastructure-simple/       # Terraform IaC (production-ready)
+├── .github/workflows/           # CI/CD pipelines
+│   ├── ci-simple.yml           # Continuous Integration
+│   ├── cd.yml                  # Continuous Deployment (main)
+│   └── continuous-delivery.yml # Continuous Delivery (staging)
+├── docs/                        # Documentation
+└── README.md                   # This file
 ```
 
 ## 🎯 Demo Checklist
@@ -275,8 +283,8 @@ For your 20-minute demo, showcase:
 1. ✅ **User Stories** - Show `docs/user-and-devops-stories.md`
 2. ✅ **Code Quality** - Run `npm run lint` and `npm test` locally
 3. ✅ **CI Pipeline** - Show GitHub Actions CI workflow logs
-4. ✅ **Security Scans** - Point out npm audit and CodeQL results
-5. ✅ **IaC** - Walk through `infrastructure/main.tf`
+4. ✅ **Security Scans** - Point out npm audit results
+5. ✅ **IaC** - Walk through `infrastructure-simple/` Terraform files
 6. ✅ **Deployment** - Show deploy workflow and AWS resources
 7. ✅ **Live App** - Demo the working application
 8. ✅ **Logs** - Show CloudWatch logs with request tracing
@@ -286,7 +294,8 @@ For your 20-minute demo, showcase:
 
 - `docs/user-and-devops-stories.md` - User and DevOps stories
 - `docs/logging-and-observability.md` - Monitoring and alerting setup
-- `infrastructure/README.md` - Infrastructure deployment guide
+- `ARCHITECTURE.md` - Detailed architecture documentation
+- `DEMO_CHECKLIST.md` - Presentation preparation guide
 
 ## 🤝 Contributing
 
