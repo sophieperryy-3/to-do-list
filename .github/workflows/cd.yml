@@ -12,10 +12,58 @@ env:
   AWS_REGION: us-east-1
 
 jobs:
+  # Infrastructure Quality Gate - runs before deployment
+  infrastructure-gate:
+    name: 🏗️ Infrastructure Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🔍 Validate Infrastructure Changes
+        run: |
+          # Check if any infrastructure files were changed
+          INFRA_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep "^infrastructure-simple/" || echo "")
+          
+          if [ -n "$INFRA_CHANGED" ]; then
+            echo "🏗️ Infrastructure files changed - running validation:"
+            echo "$INFRA_CHANGED"
+            
+            # Install Terraform
+            cd infrastructure-simple
+            wget -q -O terraform.zip https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
+            unzip -q terraform.zip
+            chmod +x terraform
+            sudo mv terraform /usr/local/bin/
+            
+            # Run validation (same as Terraform CI)
+            echo "Checking Terraform format..."
+            if ! terraform fmt -check -recursive; then
+              echo "❌ Infrastructure validation failed - Terraform format check failed"
+              echo "This blocks deployment until infrastructure is properly formatted"
+              exit 1
+            fi
+            
+            echo "Initializing Terraform..."
+            terraform init -backend=false
+            
+            echo "Validating Terraform configuration..."
+            if ! terraform validate; then
+              echo "❌ Infrastructure validation failed - Terraform configuration invalid"
+              echo "This blocks deployment until infrastructure issues are resolved"
+              exit 1
+            fi
+            
+            echo "✅ Infrastructure validation passed - deployment can proceed"
+          else
+            echo "No infrastructure files changed - skipping infrastructure validation"
+          fi
+
   # First, run CI checks
   ci-checks:
     name: 🔍 Pre-Deployment CI Checks
     runs-on: ubuntu-latest
+    needs: [infrastructure-gate]  # Wait for infrastructure validation
     
     steps:
       - name: 📥 Checkout code
