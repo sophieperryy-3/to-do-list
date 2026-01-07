@@ -130,7 +130,7 @@ jobs:
       - name: 📤 Deploy to S3
         working-directory: frontend
         run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }}/ --delete
+          aws s3 sync dist/ s3://todo-frontend-sophie-98633-381541067682/ --delete
           echo "✅ Deployed to production!"
 
       - name: 🎉 Deployment complete
