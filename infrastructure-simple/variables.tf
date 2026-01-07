@@ -14,7 +14,7 @@ variable "dynamodb_table_name" {
 }
 
 variable "frontend_bucket_name" {
-  description = "S3 bucket name for frontend static assets"
-  type        = string
-  default     = "todo-frontend-simple"
+description = "S3 bucket name for frontend static assets"
+type        = string
+default     = "todo-frontend-simple"
 }
