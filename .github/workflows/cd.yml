@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need at least 2 commits to compare HEAD~1
         
       - name: 🔍 Check for Infrastructure Changes
         id: check-infra
@@ -29,6 +31,7 @@ jobs:
           
           if [ -n "$INFRA_CHANGED" ]; then
             echo "🏗️ Infrastructure files changed - Terraform CI validation required"
+            echo "Files changed: $INFRA_CHANGED"
             echo "changed=true" >> $GITHUB_OUTPUT
           else
             echo "No infrastructure files changed - skipping Terraform CI check"
