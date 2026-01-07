@@ -137,7 +137,7 @@ export default function App() {
     >
       <header style={{ marginBottom: '40px', textAlign: 'center' }}>
         <h1 style={{ margin: '0 0 12px 0', fontSize: '48px', color: '#ffffff', fontWeight: '700', letterSpacing: '-0.5px' }}>
-          Task Manager - DevOps Demo
+          Task Manager - Outstanding DevOps Pipeline
         </h1>
         <p style={{ margin: 0, color: '#ffffff', fontSize: '16px', opacity: 0.85, fontWeight: '400' }}>
           Professional task management powered by AWS | CI/CD Pipeline Active
