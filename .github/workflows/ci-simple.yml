@@ -1,120 +1,206 @@
+# Enhanced CI Pipeline with Hard Quality Gates
+# Enforces code quality, security, and testing standards
+
 name: CI Pipeline
 
 on:
-  push:
-    branches: ['**']
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
 
 jobs:
+  # Backend CI with Hard Gates
   backend-ci:
-    name: Backend CI
+    name: 🔧 Backend CI
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         working-directory: backend
         run: npm install
 
-      - name: Run ESLint
+      - name: 🧹 Lint code (HARD GATE)
         working-directory: backend
-        run: npm run lint || echo "Linting completed with warnings"
-        continue-on-error: true
+        run: |
+          echo "::group::Backend Linting"
+          npm run lint
+          echo "✅ Backend linting passed"
+          echo "::endgroup::"
 
-      - name: Run tests
+      - name: 🧪 Run tests (HARD GATE)
         working-directory: backend
-        run: npm test
+        run: |
+          echo "::group::Backend Tests"
+          npm test
+          echo "✅ Backend tests passed"
+          echo "::endgroup::"
 
-      - name: Build TypeScript
+      - name: 🔍 Security audit (HARD GATE)
         working-directory: backend
-        run: npm run build
+        run: |
+          echo "::group::Backend Security Audit"
+          echo "Checking for high/critical vulnerabilities..."
+          
+          # Run audit and capture output
+          npm audit --audit-level=high --json > audit-results.json || true
+          
+          # Check if there are high/critical vulnerabilities
+          HIGH_VULNS=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.high // 0')
+          CRITICAL_VULNS=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.critical // 0')
+          
+          echo "High vulnerabilities: $HIGH_VULNS"
+          echo "Critical vulnerabilities: $CRITICAL_VULNS"
+          
+          if [ "$HIGH_VULNS" -gt 0 ] || [ "$CRITICAL_VULNS" -gt 0 ]; then
+            echo "❌ Security audit failed: Found $HIGH_VULNS high and $CRITICAL_VULNS critical vulnerabilities"
+            npm audit --audit-level=high
+            exit 1
+          else
+            echo "✅ Security audit passed: No high/critical vulnerabilities found"
+          fi
+          echo "::endgroup::"
 
-      - name: Backend CI Complete
-        run: echo "Backend passed all quality gates"
+      - name: 🏗️ Build TypeScript (HARD GATE)
+        working-directory: backend
+        run: |
+          echo "::group::Backend Build"
+          npm run build
+          echo "✅ Backend build successful"
+          echo "::endgroup::"
 
+  # Frontend CI with Hard Gates
   frontend-ci:
-    name: Frontend CI
+    name: 🎨 Frontend CI
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         working-directory: frontend
         run: npm install
 
-      - name: Run ESLint
+      - name: 🧹 Lint code (HARD GATE)
         working-directory: frontend
-        run: npm run lint
+        run: |
+          echo "::group::Frontend Linting"
+          npm run lint
+          echo "✅ Frontend linting passed"
+          echo "::endgroup::"
 
-      - name: Run tests
+      - name: 🧪 Run tests (HARD GATE)
         working-directory: frontend
-        run: npm test
+        run: |
+          echo "::group::Frontend Tests"
+          npm test
+          echo "✅ Frontend tests passed"
+          echo "::endgroup::"
 
-      - name: Build application
+      - name: 🔍 Security audit (HARD GATE)
         working-directory: frontend
-        run: npm run build
+        run: |
+          echo "::group::Frontend Security Audit"
+          echo "Checking for high/critical vulnerabilities..."
+          
+          # Run audit and capture output
+          npm audit --audit-level=high --json > audit-results.json || true
+          
+          # Check if there are high/critical vulnerabilities
+          HIGH_VULNS=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.high // 0')
+          CRITICAL_VULNS=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.critical // 0')
+          
+          echo "High vulnerabilities: $HIGH_VULNS"
+          echo "Critical vulnerabilities: $CRITICAL_VULNS"
+          
+          if [ "$HIGH_VULNS" -gt 0 ] || [ "$CRITICAL_VULNS" -gt 0 ]; then
+            echo "❌ Security audit failed: Found $HIGH_VULNS high and $CRITICAL_VULNS critical vulnerabilities"
+            npm audit --audit-level=high
+            exit 1
+          else
+            echo "✅ Security audit passed: No high/critical vulnerabilities found"
+          fi
+          echo "::endgroup::"
+
+      - name: 🏗️ Build application (HARD GATE)
+        working-directory: frontend
+        run: |
+          echo "::group::Frontend Build"
+          npm run build
+          echo "✅ Frontend build successful"
+          echo "::endgroup::"
         env:
           VITE_API_URL: http://localhost:3000
 
-      - name: Frontend CI Complete
-        run: echo "Frontend passed all quality gates"
-
-  security-scan:
-    name: Security Scan
+  # Quality Gates Summary
+  quality-gates-summary:
+    name: 📊 Quality Gates Summary
     runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Backend security audit
-        working-directory: backend
-        run: |
-          npm install
-          npm audit --audit-level=moderate || echo "Vulnerabilities found"
-        continue-on-error: true
-
-      - name: Frontend security audit
-        working-directory: frontend
-        run: |
-          npm install
-          npm audit --audit-level=moderate || echo "Vulnerabilities found"
-        continue-on-error: true
-
-      - name: Security scan complete
-        run: echo "DevSecOps - Security scanning integrated"
-
-  summary:
-    name: CI Summary
-    runs-on: ubuntu-latest
-    needs: [backend-ci, frontend-ci, security-scan]
+    needs: [backend-ci, frontend-ci]
     if: always()
     
     steps:
-      - name: Pipeline Complete
+      - name: 📋 Generate Quality Report
         run: |
-          echo "CI Pipeline Complete"
-          echo "Backend: PASSED"
-          echo "Frontend: PASSED"
-          echo "Security: COMPLETED"
-          echo "Ready for deployment"
+          echo "# 🛡️ Quality Gates Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Results Overview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Backend results
+          if [ "${{ needs.backend-ci.result }}" == "success" ]; then
+            echo "✅ **Backend CI**: All quality gates passed" >> $GITHUB_STEP_SUMMARY
+            echo "  - ✅ Linting: Passed" >> $GITHUB_STEP_SUMMARY
+            echo "  - ✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
+            echo "  - ✅ Security Audit: No high/critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
+            echo "  - ✅ Build: Successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Backend CI**: Quality gates failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Frontend results
+          if [ "${{ needs.frontend-ci.result }}" == "success" ]; then
+            echo "✅ **Frontend CI**: All quality gates passed" >> $GITHUB_STEP_SUMMARY
+            echo "  - ✅ Linting: Passed" >> $GITHUB_STEP_SUMMARY
+            echo "  - ✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
+            echo "  - ✅ Security Audit: No high/critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
+            echo "  - ✅ Build: Successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Frontend CI**: Quality gates failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Quality Standards Enforced" >> $GITHUB_STEP_SUMMARY
+          echo "- **Code Quality**: ESLint rules enforced as hard gates" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Coverage**: All tests must pass" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security**: No high/critical vulnerabilities allowed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Integrity**: TypeScript compilation must succeed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Compliance**: Automated quality checks prevent human error" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [ "${{ needs.backend-ci.result }}" == "success" ] && [ "${{ needs.frontend-ci.result }}" == "success" ]; then
+            echo "✅ All quality gates passed - ready for deployment!"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚀 **Status**: Ready for deployment" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Quality gates failed - deployment blocked"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚫 **Status**: Deployment blocked until issues resolved" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
