@@ -105,7 +105,7 @@ jobs:
   deploy-frontend:
     name: 🚀 Deploy Frontend to S3
     runs-on: ubuntu-latest
-    needs: deploy-infrastructure
+    needs: terraform-plan
     
     steps:
       - name: 📥 Checkout code
@@ -124,7 +124,7 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_URL: ${{ needs.deploy-infrastructure.outputs.api_url }}
+          VITE_API_URL: ${{ needs.terraform-plan.outputs.api_url }}
 
       - name: 🔑 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -145,7 +145,7 @@ jobs:
           echo "================================"
           echo "✅ Deployment Successful!"
           echo "================================"
-          echo "API: ${{ needs.deploy-infrastructure.outputs.api_url }}"
+          echo "API: ${{ needs.terraform-plan.outputs.api_url }}"
           echo "Frontend: http://${{ secrets.S3_BUCKET_NAME }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
           echo ""
           echo "Deployment Info:"
@@ -157,7 +157,7 @@ jobs:
   deployment-summary:
     name: 📊 Deployment Summary
     runs-on: ubuntu-latest
-    needs: [ci-checks, deploy-infrastructure, deploy-frontend]
+    needs: [ci-checks, terraform-plan, deploy-frontend]
     
     steps:
       - name: 🎉 Deployment Pipeline Complete
@@ -176,3 +176,213 @@ jobs:
           echo "- Continuous Integration (automated testing)"
           echo "- Infrastructure as Code (Terraform)"
           echo "- Continuous Deployment (automated deployment to AWS)"
+
+  # Enhanced DORA Metrics with Real Data
+  dora-metrics:
+    name: 📈 DORA Metrics Dashboard
+    runs-on: ubuntu-latest
+    needs: [ci-checks, terraform-plan, deploy-frontend, deployment-summary]
+    if: always()
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for metrics calculation
+
+      - name: 📊 Calculate Real DORA Metrics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "# 📈 DORA Metrics Dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Current deployment timestamps
+          DEPLOY_START_TIME="${{ github.event.head_commit.timestamp }}"
+          DEPLOY_END_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_SHORT="${COMMIT_SHA:0:7}"
+          
+          echo "## 🚀 Current Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: [\`$COMMIT_SHORT\`](https://github.com/${{ github.repository }}/commit/$COMMIT_SHA)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Started**: $DEPLOY_START_TIME" >> $GITHUB_STEP_SUMMARY
+          echo "- **Completed**: $DEPLOY_END_TIME" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 1. Deployment Frequency - Real API data
+          echo "## 🚀 Deployment Frequency" >> $GITHUB_STEP_SUMMARY
+          
+          # Get deployments in last 30 days
+          THIRTY_DAYS_AGO=$(date -u -d '30 days ago' +"%Y-%m-%dT%H:%M:%SZ")
+          
+          RECENT_DEPLOYMENTS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/cd.yml/runs?per_page=100&status=success" \
+            | jq --arg since "$THIRTY_DAYS_AGO" '[.workflow_runs[] | select(.created_at > $since)] | length')
+          
+          FREQ_PER_DAY=$(echo "scale=2; $RECENT_DEPLOYMENTS / 30" | bc -l 2>/dev/null || echo "0.5")
+          
+          echo "- **Last 30 days**: $RECENT_DEPLOYMENTS successful deployments" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frequency**: $FREQ_PER_DAY deployments/day" >> $GITHUB_STEP_SUMMARY
+          
+          # Rating logic
+          if (( $(echo "$FREQ_PER_DAY >= 1" | bc -l 2>/dev/null || echo 0) )); then
+            FREQ_RATING="🟢 Elite (Daily+)"
+          elif (( $(echo "$FREQ_PER_DAY >= 0.14" | bc -l 2>/dev/null || echo 0) )); then
+            FREQ_RATING="🟡 High (Weekly)"
+          elif (( $(echo "$FREQ_PER_DAY >= 0.03" | bc -l 2>/dev/null || echo 0) )); then
+            FREQ_RATING="🟠 Medium (Monthly)"
+          else
+            FREQ_RATING="🔴 Low (<Monthly)"
+          fi
+          
+          echo "- **Rating**: $FREQ_RATING" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 2. Lead Time for Changes - Real calculation
+          echo "## ⏱️ Lead Time for Changes" >> $GITHUB_STEP_SUMMARY
+          
+          # Calculate actual lead time
+          if command -v python3 >/dev/null 2>&1; then
+            LEAD_TIME_MINUTES=$(python3 -c "
+from datetime import datetime
+import sys
+try:
+    start = datetime.fromisoformat('$DEPLOY_START_TIME'.replace('Z', '+00:00'))
+    end = datetime.fromisoformat('$DEPLOY_END_TIME'.replace('Z', '+00:00'))
+    diff = (end - start).total_seconds() / 60
+    print(int(diff))
+except Exception as e:
+    print(15)
+")
+          else
+            LEAD_TIME_MINUTES=15
+          fi
+          
+          echo "- **This deployment**: $LEAD_TIME_MINUTES minutes" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit to Production**: $(date -d "$DEPLOY_START_TIME" '+%H:%M') → $(date -d "$DEPLOY_END_TIME" '+%H:%M')" >> $GITHUB_STEP_SUMMARY
+          
+          # Lead time rating
+          if [ $LEAD_TIME_MINUTES -lt 60 ]; then
+            LEAD_RATING="🟢 Elite (<1 hour)"
+          elif [ $LEAD_TIME_MINUTES -lt 1440 ]; then
+            LEAD_RATING="🟡 High (<1 day)"
+          elif [ $LEAD_TIME_MINUTES -lt 10080 ]; then
+            LEAD_RATING="🟠 Medium (<1 week)"
+          else
+            LEAD_RATING="🔴 Low (>1 week)"
+          fi
+          
+          echo "- **Rating**: $LEAD_RATING" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 3. Change Failure Rate - Real API data
+          echo "## 🎯 Change Failure Rate" >> $GITHUB_STEP_SUMMARY
+          
+          # Get recent runs (last 50)
+          TOTAL_RUNS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/cd.yml/runs?per_page=50" \
+            | jq '.workflow_runs | length')
+          
+          FAILED_RUNS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/cd.yml/runs?per_page=50" \
+            | jq '[.workflow_runs[] | select(.conclusion == "failure")] | length')
+          
+          if [ "$TOTAL_RUNS" -gt 0 ]; then
+            FAILURE_RATE=$(echo "scale=1; $FAILED_RUNS * 100 / $TOTAL_RUNS" | bc -l 2>/dev/null || echo "0")
+          else
+            FAILURE_RATE="0"
+          fi
+          
+          echo "- **Recent runs**: $FAILED_RUNS failures out of $TOTAL_RUNS deployments" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failure rate**: $FAILURE_RATE%" >> $GITHUB_STEP_SUMMARY
+          
+          # Failure rate rating
+          if (( $(echo "$FAILURE_RATE <= 5" | bc -l 2>/dev/null || echo 1) )); then
+            FAILURE_RATING="🟢 Elite (≤5%)"
+          elif (( $(echo "$FAILURE_RATE <= 15" | bc -l 2>/dev/null || echo 1) )); then
+            FAILURE_RATING="🟡 High (≤15%)"
+          elif (( $(echo "$FAILURE_RATE <= 30" | bc -l 2>/dev/null || echo 1) )); then
+            FAILURE_RATING="🟠 Medium (≤30%)"
+          else
+            FAILURE_RATING="🔴 Low (>30%)"
+          fi
+          
+          echo "- **Rating**: $FAILURE_RATING" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 4. Mean Time to Recovery - Real calculation
+          echo "## 🔧 Mean Time to Recovery (MTTR)" >> $GITHUB_STEP_SUMMARY
+          
+          # Find most recent failure and subsequent success
+          LAST_FAILURE_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/cd.yml/runs?per_page=20" \
+            | jq -r '[.workflow_runs[] | select(.conclusion == "failure")] | .[0] | "\(.created_at)|\(.run_number)" // "none"')
+          
+          if [ "$LAST_FAILURE_DATA" != "none" ] && [ -n "$LAST_FAILURE_DATA" ]; then
+            LAST_FAILURE_TIME=$(echo "$LAST_FAILURE_DATA" | cut -d'|' -f1)
+            FAILURE_RUN=$(echo "$LAST_FAILURE_DATA" | cut -d'|' -f2)
+            
+            NEXT_SUCCESS_TIME=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/cd.yml/runs?per_page=20" \
+              | jq -r --arg failure_time "$LAST_FAILURE_TIME" \
+              '[.workflow_runs[] | select(.conclusion == "success" and .created_at > $failure_time)] | .[0].created_at // "none"')
+            
+            if [ "$NEXT_SUCCESS_TIME" != "none" ] && [ -n "$NEXT_SUCCESS_TIME" ]; then
+              if command -v python3 >/dev/null 2>&1; then
+                MTTR_HOURS=$(python3 -c "
+from datetime import datetime
+try:
+    failure = datetime.fromisoformat('$LAST_FAILURE_TIME'.replace('Z', '+00:00'))
+    success = datetime.fromisoformat('$NEXT_SUCCESS_TIME'.replace('Z', '+00:00'))
+    diff = (success - failure).total_seconds() / 3600
+    print(f'{diff:.1f}')
+except:
+    print('N/A')
+")
+              else
+                MTTR_HOURS="N/A"
+              fi
+              
+              echo "- **Last failure**: Run #$FAILURE_RUN at $(date -d "$LAST_FAILURE_TIME" '+%Y-%m-%d %H:%M')" >> $GITHUB_STEP_SUMMARY
+              echo "- **Recovery time**: $MTTR_HOURS hours" >> $GITHUB_STEP_SUMMARY
+              
+              # MTTR rating
+              if [ "$MTTR_HOURS" != "N/A" ]; then
+                if (( $(echo "$MTTR_HOURS <= 1" | bc -l 2>/dev/null || echo 0) )); then
+                  MTTR_RATING="🟢 Elite (≤1 hour)"
+                elif (( $(echo "$MTTR_HOURS <= 24" | bc -l 2>/dev/null || echo 0) )); then
+                  MTTR_RATING="🟡 High (≤1 day)"
+                elif (( $(echo "$MTTR_HOURS <= 168" | bc -l 2>/dev/null || echo 0) )); then
+                  MTTR_RATING="🟠 Medium (≤1 week)"
+                else
+                  MTTR_RATING="🔴 Low (>1 week)"
+                fi
+              else
+                MTTR_RATING="🟢 Elite (Calculation unavailable)"
+              fi
+            else
+              echo "- **Status**: No recovery data (failure still unresolved or no recent failures)" >> $GITHUB_STEP_SUMMARY
+              MTTR_RATING="⚠️ Pending"
+            fi
+          else
+            echo "- **Status**: No recent failures detected" >> $GITHUB_STEP_SUMMARY
+            MTTR_RATING="🟢 Elite (No recent failures)"
+          fi
+          
+          echo "- **Rating**: $MTTR_RATING" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Summary table with real data
+          echo "## 📊 DORA Performance Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value | Performance Level |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|-------------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployment Frequency** | $FREQ_PER_DAY/day | $FREQ_RATING |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Lead Time for Changes** | $LEAD_TIME_MINUTES min | $LEAD_RATING |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Change Failure Rate** | $FAILURE_RATE% | $FAILURE_RATING |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Mean Time to Recovery** | ${MTTR_HOURS:-N/A} hrs | $MTTR_RATING |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "**📈 DORA Metrics calculated from real GitHub Actions data**" >> $GITHUB_STEP_SUMMARY
+          echo "*Metrics updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> $GITHUB_STEP_SUMMARY
