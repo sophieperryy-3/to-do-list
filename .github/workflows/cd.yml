@@ -1,69 +1,102 @@
 # Continuous Deployment Pipeline
 # Deploys to AWS on push to main branch
+# WAITS for Terraform CI to pass before deploying
 
 name: CD Pipeline
 
 on:
+  workflow_run:
+    workflows: ["Terraform CI"]
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
+    paths-ignore:
+      - 'infrastructure-simple/**'  # Only run if no infrastructure changes
   workflow_dispatch: # Allow manual trigger
 
 env:
   AWS_REGION: us-east-1
 
 jobs:
-  # Infrastructure Quality Gate - runs before deployment
-  infrastructure-gate:
-    name: 🏗️ Infrastructure Quality Gate
+  # Check Terraform CI Status (if it ran)
+  terraform-gate:
+    name: 🛡️ Terraform Security Gate
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         
-      - name: 🔍 Validate Infrastructure Changes
+      - name: 🔍 Check Terraform CI Status
         run: |
-          # Check if any infrastructure files were changed
+          # Check if infrastructure files were changed
           INFRA_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep "^infrastructure-simple/" || echo "")
           
           if [ -n "$INFRA_CHANGED" ]; then
-            echo "🏗️ Infrastructure files changed - running validation:"
-            echo "$INFRA_CHANGED"
+            echo "🏗️ Infrastructure files changed - checking Terraform CI status"
             
-            # Install Terraform
-            cd infrastructure-simple
-            wget -q -O terraform.zip https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
-            unzip -q terraform.zip
-            chmod +x terraform
-            sudo mv terraform /usr/local/bin/
-            
-            # Run validation (same as Terraform CI)
-            echo "Checking Terraform format..."
-            if ! terraform fmt -check -recursive; then
-              echo "❌ Infrastructure validation failed - Terraform format check failed"
-              echo "This blocks deployment until infrastructure is properly formatted"
-              exit 1
+            # If triggered by workflow_run, check the conclusion
+            if [ "${{ github.event_name }}" = "workflow_run" ]; then
+              if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+                echo "❌ Terraform CI failed - BLOCKING DEPLOYMENT"
+                echo "Terraform CI conclusion: ${{ github.event.workflow_run.conclusion }}"
+                echo "Deployment cannot proceed until infrastructure validation passes"
+                exit 1
+              else
+                echo "✅ Terraform CI passed - deployment can proceed"
+              fi
+            else
+              echo "⚠️ No Terraform CI workflow detected for this push"
+              echo "This should not happen if infrastructure files changed"
+              # Run our own validation as backup
+              echo "Running backup infrastructure validation..."
+              
+              cd infrastructure-simple
+              
+              # Install Terraform
+              wget -q -O terraform.zip https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
+              unzip -q terraform.zip
+              chmod +x terraform
+              sudo mv terraform /usr/local/bin/
+              
+              # Validate
+              if ! terraform fmt -check -recursive; then
+                echo "❌ Terraform format check failed - BLOCKING DEPLOYMENT"
+                exit 1
+              fi
+              
+              terraform init -backend=false
+              if ! terraform validate; then
+                echo "❌ Terraform validation failed - BLOCKING DEPLOYMENT"
+                exit 1
+              fi
+              
+              echo "✅ Backup infrastructure validation passed"
             fi
-            
-            echo "Initializing Terraform..."
-            terraform init -backend=false
-            
-            echo "Validating Terraform configuration..."
-            if ! terraform validate; then
-              echo "❌ Infrastructure validation failed - Terraform configuration invalid"
-              echo "This blocks deployment until infrastructure issues are resolved"
-              exit 1
-            fi
-            
-            echo "✅ Infrastructure validation passed - deployment can proceed"
           else
-            echo "No infrastructure files changed - skipping infrastructure validation"
+            echo "No infrastructure files changed - skipping Terraform validation"
           fi
+
+  # Infrastructure Quality Gate - runs before deployment
+  infrastructure-gate:
+    name: 🏗️ Infrastructure Quality Gate
+    runs-on: ubuntu-latest
+    needs: [terraform-gate]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: ✅ Infrastructure Gate Passed
+        run: |
+          echo "✅ All infrastructure quality gates have passed"
+          echo "Terraform validation completed successfully"
+          echo "Deployment can proceed safely"
 
   # First, run CI checks
   ci-checks:
     name: 🔍 Pre-Deployment CI Checks
     runs-on: ubuntu-latest
-    needs: [infrastructure-gate]  # Wait for infrastructure validation
+    needs: [terraform-gate, infrastructure-gate]  # Wait for both gates
     
     steps:
       - name: 📥 Checkout code
