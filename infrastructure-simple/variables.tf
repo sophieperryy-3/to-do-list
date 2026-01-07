@@ -8,7 +8,7 @@ variable "aws_region" {
 # This change will trigger terraform-ci.yml workflow
 
 variable "dynamodb_table_name" {
-  description = "DynamoDB table name"
+  description = "DynamoDB table name for todo tasks"
   type        = string
   default     = "todo-tasks-simple"
 }
