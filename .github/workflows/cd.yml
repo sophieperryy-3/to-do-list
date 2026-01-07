@@ -1,87 +1,105 @@
 # Continuous Deployment Pipeline
-# Deploys to AWS on push to main branch
-# WAITS for Terraform CI to pass before deploying
+# Deploys to AWS ONLY after all validations pass
+# Uses branch protection rules and status checks
 
 name: CD Pipeline
 
 on:
-  workflow_run:
-    workflows: ["Terraform CI"]
-    types: [completed]
-    branches: [main]
   push:
     branches: [main]
-    paths-ignore:
-      - 'infrastructure-simple/**'  # Only run if no infrastructure changes
   workflow_dispatch: # Allow manual trigger
 
 env:
   AWS_REGION: us-east-1
 
 jobs:
-  # Check Terraform CI Status (if it ran)
-  terraform-gate:
+  # HARD GATE: Wait for Terraform CI to complete successfully
+  terraform-security-gate:
     name: 🛡️ Terraform Security Gate
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         
-      - name: 🔍 Check Terraform CI Status
+      - name: 🔍 Check for Infrastructure Changes
+        id: check-infra
         run: |
-          # Check if infrastructure files were changed
+          # Check if any infrastructure files were changed
           INFRA_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep "^infrastructure-simple/" || echo "")
           
           if [ -n "$INFRA_CHANGED" ]; then
-            echo "🏗️ Infrastructure files changed - checking Terraform CI status"
+            echo "🏗️ Infrastructure files changed - Terraform CI validation required"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No infrastructure files changed - skipping Terraform CI check"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: ⏳ Wait for Terraform CI to Complete
+        if: steps.check-infra.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔄 Waiting for Terraform CI workflow to complete..."
+          
+          # Wait up to 10 minutes for Terraform CI to complete
+          MAX_WAIT=600  # 10 minutes
+          WAIT_TIME=0
+          SLEEP_INTERVAL=15
+          
+          while [ $WAIT_TIME -lt $MAX_WAIT ]; do
+            echo "⏱️ Checking Terraform CI status... (${WAIT_TIME}s elapsed)"
             
-            # If triggered by workflow_run, check the conclusion
-            if [ "${{ github.event_name }}" = "workflow_run" ]; then
-              if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
-                echo "❌ Terraform CI failed - BLOCKING DEPLOYMENT"
-                echo "Terraform CI conclusion: ${{ github.event.workflow_run.conclusion }}"
-                echo "Deployment cannot proceed until infrastructure validation passes"
-                exit 1
-              else
-                echo "✅ Terraform CI passed - deployment can proceed"
+            # Get the latest Terraform CI run for this commit
+            TERRAFORM_RUN=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/terraform-ci.yml/runs?head_sha=${{ github.sha }}&per_page=1" \
+              | jq -r '.workflow_runs[0] // empty')
+            
+            if [ -n "$TERRAFORM_RUN" ] && [ "$TERRAFORM_RUN" != "null" ]; then
+              STATUS=$(echo "$TERRAFORM_RUN" | jq -r '.status')
+              CONCLUSION=$(echo "$TERRAFORM_RUN" | jq -r '.conclusion // "null"')
+              
+              echo "Terraform CI Status: $STATUS, Conclusion: $CONCLUSION"
+              
+              if [ "$STATUS" = "completed" ]; then
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "✅ Terraform CI PASSED - Deployment can proceed"
+                  exit 0
+                else
+                  echo "❌ Terraform CI FAILED - BLOCKING DEPLOYMENT"
+                  echo "Conclusion: $CONCLUSION"
+                  echo ""
+                  echo "🚫 DEPLOYMENT BLOCKED FOR SECURITY REASONS"
+                  echo "Infrastructure validation must pass before deployment"
+                  exit 1
+                fi
               fi
             else
-              echo "⚠️ No Terraform CI workflow detected for this push"
-              echo "This should not happen if infrastructure files changed"
-              # Run our own validation as backup
-              echo "Running backup infrastructure validation..."
-              
-              cd infrastructure-simple
-              
-              # Install Terraform
-              wget -q -O terraform.zip https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
-              unzip -q terraform.zip
-              chmod +x terraform
-              sudo mv terraform /usr/local/bin/
-              
-              # Validate
-              if ! terraform fmt -check -recursive; then
-                echo "❌ Terraform format check failed - BLOCKING DEPLOYMENT"
-                exit 1
-              fi
-              
-              terraform init -backend=false
-              if ! terraform validate; then
-                echo "❌ Terraform validation failed - BLOCKING DEPLOYMENT"
-                exit 1
-              fi
-              
-              echo "✅ Backup infrastructure validation passed"
+              echo "⚠️ Terraform CI workflow not found yet..."
             fi
+            
+            sleep $SLEEP_INTERVAL
+            WAIT_TIME=$((WAIT_TIME + SLEEP_INTERVAL))
+          done
+          
+          echo "❌ TIMEOUT: Terraform CI did not complete within 10 minutes"
+          echo "🚫 BLOCKING DEPLOYMENT - Infrastructure validation timeout"
+          exit 1
+          
+      - name: ✅ Security Gate Passed
+        run: |
+          if [ "${{ steps.check-infra.outputs.changed }}" = "true" ]; then
+            echo "✅ Terraform CI validation completed successfully"
           else
-            echo "No infrastructure files changed - skipping Terraform validation"
+            echo "✅ No infrastructure validation required"
           fi
+          echo "🚀 Deployment security gate PASSED"
 
   # Infrastructure Quality Gate - runs before deployment
   infrastructure-gate:
     name: 🏗️ Infrastructure Quality Gate
     runs-on: ubuntu-latest
-    needs: [terraform-gate]
+    needs: [terraform-security-gate]
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -96,7 +114,7 @@ jobs:
   ci-checks:
     name: 🔍 Pre-Deployment CI Checks
     runs-on: ubuntu-latest
-    needs: [terraform-gate, infrastructure-gate]  # Wait for both gates
+    needs: [terraform-security-gate, infrastructure-gate]  # Wait for both gates
     
     steps:
       - name: 📥 Checkout code
