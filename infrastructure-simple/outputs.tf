@@ -3,11 +3,11 @@
 output "summary" {
   description = "Deployment summary"
   value = {
-    dynamodb_table = aws_dynamodb_table.tasks.name
+    dynamodb_table  = aws_dynamodb_table.tasks.name
     frontend_bucket = aws_s3_bucket.frontend.id
-    frontend_url = "http://${aws_s3_bucket.frontend.bucket}.s3-website-${var.aws_region}.amazonaws.com"
-    api_url = aws_apigatewayv2_api.api.api_endpoint
-    region = var.aws_region
+    frontend_url    = "http://${aws_s3_bucket.frontend.bucket}.s3-website-${var.aws_region}.amazonaws.com"
+    api_url         = aws_apigatewayv2_api.api.api_endpoint
+    region          = var.aws_region
   }
 }
 
