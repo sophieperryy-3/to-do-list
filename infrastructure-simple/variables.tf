@@ -4,6 +4,9 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+# Demo: Added comment to test IaC pipeline
+# This change will trigger terraform-ci.yml workflow
+
 variable "dynamodb_table_name" {
   description = "DynamoDB table name"
   type        = string
