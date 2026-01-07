@@ -54,7 +54,9 @@ resource "aws_s3_object" "lambda_zip" {
   bucket = aws_s3_bucket.lambda_code.id
   key    = "lambda-deployment.zip"
   source = "${path.module}/lambda-deployment.zip"
-  etag   = filemd5("${path.module}/lambda-deployment.zip")
+  
+  # Use a placeholder etag for CI validation when file doesn't exist
+  etag = fileexists("${path.module}/lambda-deployment.zip") ? filemd5("${path.module}/lambda-deployment.zip") : "placeholder-for-ci-validation"
 }
 
 # Lambda function
