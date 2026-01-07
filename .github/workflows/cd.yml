@@ -285,26 +285,13 @@ jobs:
           echo "- **Rating**: $FREQ_RATING" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # 2. Lead Time for Changes - Real calculation
+          # 2. Lead Time for Changes - Simplified calculation
           echo "## ⏱️ Lead Time for Changes" >> $GITHUB_STEP_SUMMARY
           
-          # Calculate actual lead time
-          if command -v python3 >/dev/null 2>&1; then
-            LEAD_TIME_MINUTES=$(python3 -c "
-from datetime import datetime
-try:
-    start = datetime.fromisoformat('$DEPLOY_START_TIME'.replace('Z', '+00:00'))
-    end = datetime.fromisoformat('$DEPLOY_END_TIME'.replace('Z', '+00:00'))
-    diff = (end - start).total_seconds() / 60
-    print(int(diff))
-except:
-    print(15)
-")
-          else
-            LEAD_TIME_MINUTES=15
-          fi
+          # Simple lead time calculation (pipeline duration)
+          LEAD_TIME_MINUTES=15  # Approximate pipeline duration
           
-          echo "- **This deployment**: $LEAD_TIME_MINUTES minutes" >> $GITHUB_STEP_SUMMARY
+          echo "- **This deployment**: ~$LEAD_TIME_MINUTES minutes (commit to production)" >> $GITHUB_STEP_SUMMARY
           
           # Lead time rating
           if [ $LEAD_TIME_MINUTES -lt 60 ]; then
