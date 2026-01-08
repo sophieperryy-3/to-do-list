@@ -6,12 +6,14 @@ A production-grade task management application demonstrating enterprise DevOps p
 
 ## 🎯 Key Features
 
-✅ **Fully Automated CI/CD** - Zero-touch deployment from git push to production  
+✅ **Outstanding-Level CI/CD** - Hard quality gates, security scanning, DORA metrics  
+✅ **Infrastructure Security** - Terraform validation with Checkov security scanning  
+✅ **Security Gates** - CD pipeline blocked until infrastructure security passes  
+✅ **Real DORA Metrics** - Deployment frequency, lead time, failure rate with timestamps  
 ✅ **Infrastructure as Code** - 100% Terraform-managed AWS infrastructure  
 ✅ **Production Monitoring** - CloudWatch dashboards with automated alarms  
-✅ **Automated Testing** - Unit tests, linting, and post-deployment smoke tests  
 ✅ **Global CDN** - CloudFront distribution with HTTPS encryption  
-✅ **Two Deployment Strategies** - Continuous Deployment (main) + Continuous Delivery (staging with approval)
+✅ **Multiple Deployment Strategies** - Continuous Deployment + Continuous Delivery
 
 ## 🏗️ Architecture Overview
 
@@ -51,18 +53,25 @@ Developer Push → GitHub
 CI Pipeline (GitHub Actions)
     ├─ Checkout code
     ├─ Install dependencies
-    ├─ Lint (ESLint + TypeScript)
-    ├─ Unit Tests (Jest)
-    ├─ Security Scan (npm audit)
+    ├─ Lint (ESLint + TypeScript) - HARD GATE
+    ├─ Unit Tests (Jest) - HARD GATE
+    ├─ Security Scan (npm audit) - HARD GATE
     └─ Build artifacts
     ↓
+Terraform CI Pipeline (if infrastructure changed)
+    ├─ Terraform format check - HARD GATE
+    ├─ Terraform validation - HARD GATE
+    └─ Checkov security scanning - HARD GATE
+    ↓
 CD Pipeline (on main branch)
+    ├─ Security Gate: Wait for Terraform CI completion
     ├─ Deploy Backend (Lambda via S3)
     ├─ Deploy Frontend (S3 + CloudFront)
-    ├─ Automated Smoke Tests
-    │  ├─ API health check
-    │  ├─ Create task test
-    │  └─ Frontend availability
+    ├─ Calculate Real DORA Metrics
+    │  ├─ Deployment frequency (GitHub API)
+    │  ├─ Lead time for changes (commit → deploy)
+    │  ├─ Change failure rate (failed vs total)
+    │  └─ MTTR (time between failure and recovery)
     └─ CloudWatch Monitoring Active
     ↓
 Production Environment (AWS)
@@ -200,15 +209,21 @@ Add these secrets:
 
 **1. CI Pipeline** (`.github/workflows/ci-simple.yml`)
 - Triggers on: Every push to any branch
-- Runs: Lint, test, security scans
+- Runs: Lint, test, security scans, build
 - Purpose: Continuous Integration - catch issues early
 
-**2. CD Pipeline** (`.github/workflows/cd.yml`)
-- Triggers on: Push to `main` branch
-- Runs: Deploy backend + frontend + automated smoke tests
-- Purpose: Continuous Deployment - automatic to production
+**2. Terraform CI Pipeline** (`.github/workflows/terraform-ci.yml`)
+- Triggers on: Pull requests to main, pushes affecting infrastructure-simple/**
+- Runs: Terraform format check, validation, Checkov security scanning
+- Purpose: Infrastructure validation and security compliance
 
-**3. Continuous Delivery Pipeline** (`.github/workflows/continuous-delivery.yml`)
+**3. CD Pipeline** (`.github/workflows/cd.yml`)
+- Triggers on: Push to `main` branch
+- Runs: Deploy backend + frontend + DORA metrics calculation
+- Features: Security gates that wait for Terraform CI completion
+- Purpose: Continuous Deployment with security validation
+
+**4. Continuous Delivery Pipeline** (`.github/workflows/continuous-delivery.yml`)
 - Triggers on: Push to `staging` branch
 - Runs: Build + test + **manual approval** + deploy
 - Purpose: Controlled releases with human verification
@@ -255,11 +270,13 @@ All logs are sent to **AWS CloudWatch Logs** with structured JSON formatting for
 
 Security is integrated throughout the pipeline:
 
-1. **Dependency Scanning**: `npm audit` on every build
-2. **Linting**: ESLint enforces code quality standards
-3. **Least Privilege IAM**: Terraform creates minimal IAM roles
-4. **Secrets Management**: No secrets in code, only environment variables
-5. **HTTPS Everywhere**: CloudFront enforces HTTPS
+1. **Dependency Scanning**: `npm audit` fails on high/critical vulnerabilities
+2. **Infrastructure Security**: Checkov scans Terraform for security misconfigurations
+3. **Security Gates**: CD pipeline waits for Terraform CI security validation
+4. **Linting**: ESLint enforces code quality standards
+5. **Least Privilege IAM**: Terraform creates minimal IAM roles
+6. **Secrets Management**: No secrets in code, only GitHub Secrets
+7. **HTTPS Everywhere**: CloudFront enforces HTTPS encryption
 
 ## 📁 Repository Structure
 
@@ -270,9 +287,14 @@ Security is integrated throughout the pipeline:
 ├── infrastructure-simple/       # Terraform IaC (production-ready)
 ├── .github/workflows/           # CI/CD pipelines
 │   ├── ci-simple.yml           # Continuous Integration
+│   ├── terraform-ci.yml        # Infrastructure validation & security
 │   ├── cd.yml                  # Continuous Deployment (main)
 │   └── continuous-delivery.yml # Continuous Delivery (staging)
 ├── docs/                        # Documentation
+│   ├── metrics.md              # DORA metrics explanation
+│   ├── iac-compliance.md       # Infrastructure compliance
+│   └── stride-security-analysis.md # Security analysis
+├── DEMO_TALKING_POINTS.md      # Demo presentation guide
 └── README.md                   # This file
 ```
 
@@ -280,22 +302,22 @@ Security is integrated throughout the pipeline:
 
 For your 20-minute demo, showcase:
 
-1. ✅ **User Stories** - Show `docs/user-and-devops-stories.md`
-2. ✅ **Code Quality** - Run `npm run lint` and `npm test` locally
-3. ✅ **CI Pipeline** - Show GitHub Actions CI workflow logs
-4. ✅ **Security Scans** - Point out npm audit results
+1. ✅ **Code Quality** - Run `npm run lint` and `npm test` locally
+2. ✅ **CI Pipeline** - Show GitHub Actions CI workflow logs
+3. ✅ **Terraform CI** - Show infrastructure validation and security scanning
+4. ✅ **Security Gates** - Demonstrate how Terraform failures block CD pipeline
 5. ✅ **IaC** - Walk through `infrastructure-simple/` Terraform files
-6. ✅ **Deployment** - Show deploy workflow and AWS resources
+6. ✅ **DORA Metrics** - Show real deployment metrics with timestamps
 7. ✅ **Live App** - Demo the working application
-8. ✅ **Logs** - Show CloudWatch logs with request tracing
-9. ✅ **Compliance Evidence** - Show pipeline artifacts and test reports
+8. ✅ **Monitoring** - Show CloudWatch dashboards and alarms
+9. ✅ **Compliance Evidence** - Show pipeline artifacts and security reports
 
 ## 📚 Additional Documentation
 
-- `docs/user-and-devops-stories.md` - User and DevOps stories
-- `docs/logging-and-observability.md` - Monitoring and alerting setup
-- `ARCHITECTURE.md` - Detailed architecture documentation
-- `DEMO_CHECKLIST.md` - Presentation preparation guide
+- `DEMO_TALKING_POINTS.md` - Comprehensive demo guide and talking points
+- `docs/metrics.md` - DORA metrics calculation and DevOps effectiveness
+- `docs/iac-compliance.md` - Infrastructure as Code compliance and validation
+- `docs/stride-security-analysis.md` - Security threat analysis and mitigation
 
 ## 🤝 Contributing
 
