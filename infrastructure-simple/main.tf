@@ -1,6 +1,6 @@
 # Simplified Terraform for AWS Academy/Learner Lab
 # Works with restricted permissions
-# Updated to test Terraform CI pipeline on staging branch
+# Testing Terraform CI workflow with remote backend - 2025-01-10
 
 terraform {
   required_version = ">= 1.5.0"
