@@ -36,13 +36,32 @@ jobs:
           echo "✅ Backend linting passed"
           echo "::endgroup::"
 
-      - name: 🧪 Run tests (HARD GATE)
+      - name: 🧪 Run tests with coverage (HARD GATE)
         working-directory: backend
         run: |
-          echo "::group::Backend Tests"
-          npm test
-          echo "✅ Backend tests passed"
+          echo "::group::Backend Tests with Coverage"
+          npm run test:ci
+          echo "✅ Backend tests passed with coverage"
           echo "::endgroup::"
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: |
+            backend/junit.xml
+            backend/coverage/
+          retention-days: 30
+
+      - name: 📈 Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
 
       - name: 🔍 Security audit (HARD GATE)
         working-directory: backend
@@ -103,13 +122,32 @@ jobs:
           echo "✅ Frontend linting passed"
           echo "::endgroup::"
 
-      - name: 🧪 Run tests (HARD GATE)
+      - name: 🧪 Run tests with coverage (HARD GATE)
         working-directory: frontend
         run: |
-          echo "::group::Frontend Tests"
-          npm test
-          echo "✅ Frontend tests passed"
+          echo "::group::Frontend Tests with Coverage"
+          npm run test:ci
+          echo "✅ Frontend tests passed with coverage"
           echo "::endgroup::"
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-test-results
+          path: |
+            frontend/junit.xml
+            frontend/coverage/
+          retention-days: 30
+
+      - name: 📈 Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
 
       - name: 🔍 Security audit (HARD GATE)
         working-directory: frontend
