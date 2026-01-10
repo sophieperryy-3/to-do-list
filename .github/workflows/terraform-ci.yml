@@ -1,5 +1,6 @@
 # Infrastructure as Code CI Pipeline
 # Validates Terraform configuration and runs security/compliance checks
+# PLAN-ONLY: This workflow does NOT apply changes, only validates and plans
 
 name: Terraform CI
 
@@ -57,8 +58,8 @@ jobs:
           echo "::group::Terraform Init"
           echo "Initializing Terraform with remote backend..."
           
-          # Initialize with remote backend for validation
-          # This ensures we're validating against the actual state
+          # Initialize with remote backend (no -backend=false)
+          # This connects to S3 backend and DynamoDB locking
           terraform init
           echo "✅ Terraform initialization with remote backend successful"
           echo "::endgroup::"
@@ -82,22 +83,30 @@ jobs:
           AWS_REGION: us-east-1
         run: |
           echo "::group::Terraform Plan"
-          echo "Generating execution plan to validate changes..."
+          echo "Generating execution plan against remote state..."
           
-          # Generate plan and save output
-          terraform plan -no-color -out=tfplan.out > plan.txt 2>&1 || PLAN_EXIT_CODE=$?
+          # Generate plan with binary output for potential apply
+          # This is plan-only - NO apply happens in CI
+          terraform plan -out=tfplan -detailed-exitcode > plan.txt 2>&1 || PLAN_EXIT_CODE=$?
           
           # Display plan summary
           echo "Plan Summary:"
-          grep -E "(Plan:|No changes)" plan.txt || echo "Changes detected"
+          if grep -q "No changes" plan.txt; then
+            echo "✅ No infrastructure changes detected"
+          else
+            echo "📋 Infrastructure changes detected - see plan details"
+            grep -E "(Plan:|will be)" plan.txt | head -10 || true
+          fi
           
-          # Check for plan errors
-          if [ "${PLAN_EXIT_CODE:-0}" -ne 0 ]; then
-            echo "❌ Terraform plan failed"
+          # Check for plan errors (exit code 1 = error, 2 = changes, 0 = no changes)
+          if [ "${PLAN_EXIT_CODE:-0}" -eq 1 ]; then
+            echo "❌ Terraform plan failed with errors"
             cat plan.txt
             exit 1
+          elif [ "${PLAN_EXIT_CODE:-0}" -eq 2 ]; then
+            echo "✅ Terraform plan generated successfully (changes detected)"
           else
-            echo "✅ Terraform plan generated successfully"
+            echo "✅ Terraform plan generated successfully (no changes)"
           fi
           echo "::endgroup::"
 
@@ -105,10 +114,10 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: terraform-plan
+          name: terraform-plan-${{ github.sha }}
           path: |
             ${{ env.WORKING_DIR }}/plan.txt
-            ${{ env.WORKING_DIR }}/tfplan.out
+            ${{ env.WORKING_DIR }}/tfplan
           retention-days: 30
 
   security-compliance:
