@@ -48,13 +48,19 @@ jobs:
 
       - name: 🔧 Terraform Init (HARD GATE)
         working-directory: ${{ env.WORKING_DIR }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: us-east-1
         run: |
           echo "::group::Terraform Init"
-          echo "Initializing Terraform configuration..."
+          echo "Initializing Terraform with remote backend..."
           
-          # Initialize without backend (validation only)
-          terraform init -backend=false
-          echo "✅ Terraform initialization successful"
+          # Initialize with remote backend for validation
+          # This ensures we're validating against the actual state
+          terraform init
+          echo "✅ Terraform initialization with remote backend successful"
           echo "::endgroup::"
 
       - name: ✅ Terraform Validate (HARD GATE)
@@ -66,6 +72,44 @@ jobs:
           terraform validate
           echo "✅ Terraform configuration is valid"
           echo "::endgroup::"
+
+      - name: 📋 Terraform Plan (VALIDATION)
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: us-east-1
+        run: |
+          echo "::group::Terraform Plan"
+          echo "Generating execution plan to validate changes..."
+          
+          # Generate plan and save output
+          terraform plan -no-color -out=tfplan.out > plan.txt 2>&1 || PLAN_EXIT_CODE=$?
+          
+          # Display plan summary
+          echo "Plan Summary:"
+          grep -E "(Plan:|No changes)" plan.txt || echo "Changes detected"
+          
+          # Check for plan errors
+          if [ "${PLAN_EXIT_CODE:-0}" -ne 0 ]; then
+            echo "❌ Terraform plan failed"
+            cat plan.txt
+            exit 1
+          else
+            echo "✅ Terraform plan generated successfully"
+          fi
+          echo "::endgroup::"
+
+      - name: 📤 Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terraform-plan
+          path: |
+            ${{ env.WORKING_DIR }}/plan.txt
+            ${{ env.WORKING_DIR }}/tfplan.out
+          retention-days: 30
 
   security-compliance:
     name: 🔒 Security & Compliance

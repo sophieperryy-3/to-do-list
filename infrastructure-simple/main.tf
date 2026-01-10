@@ -11,6 +11,15 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  # Remote backend for team collaboration and state locking
+  backend "s3" {
+    bucket         = "terraform-state-sophie-devops-98633"
+    key            = "todo-app/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-state-lock"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
