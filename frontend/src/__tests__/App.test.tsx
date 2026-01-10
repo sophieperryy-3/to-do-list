@@ -9,6 +9,14 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import App from '../App';
 
+// Mock the API client module
+jest.mock('../api/client', () => ({
+  createTask: jest.fn(),
+  getAllTasks: jest.fn(),
+  updateTask: jest.fn(),
+  deleteTask: jest.fn(),
+}));
+
 // Mock localStorage
 const localStorageMock = {
   getItem: jest.fn(),
