@@ -96,6 +96,13 @@ jobs:
           echo "✅ Backend build successful"
           echo "::endgroup::"
 
+      - name: 📦 Upload backend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: backend/dist/
+          retention-days: 7
+
   # Frontend CI with Hard Gates
   frontend-ci:
     name: 🎨 Frontend CI
@@ -183,6 +190,13 @@ jobs:
           echo "::endgroup::"
         env:
           VITE_API_URL: http://localhost:3000
+
+      - name: 📦 Upload frontend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 7
 
   # Quality Gates Summary
   quality-gates-summary:
