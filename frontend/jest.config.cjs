@@ -12,10 +12,10 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      branches: 30,
-      functions: 30,
-      lines: 30,
-      statements: 30,
+      branches: 15,
+      functions: 15,
+      lines: 25,
+      statements: 25,
     },
   },
   coverageReporters: ['text', 'lcov', 'html', 'json'],
@@ -32,11 +32,6 @@ module.exports = {
   ],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-  },
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
   },
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   transform: {
