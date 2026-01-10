@@ -5,21 +5,48 @@
  * In production, you'd have more comprehensive tests.
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import App from '../App';
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock
+});
+
+// Mock window.confirm
+Object.defineProperty(window, 'confirm', {
+  value: jest.fn(() => true),
+});
 
 describe('App Component Tests', () => {
-  it('should pass a basic test', () => {
-    expect(true).toBe(true);
+  beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+    localStorageMock.getItem.mockReturnValue(null);
   });
 
-  it('should validate task title is required', () => {
-    const title = '';
-    expect(title.trim().length).toBe(0);
+  it('should render the app title', () => {
+    render(<App />);
+    expect(screen.getByText(/Task Manager/)).toBeInTheDocument();
   });
 
-  it('should validate task title is not empty', () => {
-    const title = 'Buy groceries';
-    expect(title.trim().length).toBeGreaterThan(0);
+  it('should render the add task form', () => {
+    render(<App />);
+    expect(screen.getByPlaceholderText('What needs to be done?')).toBeInTheDocument();
+    expect(screen.getByText('✨ Add Task')).toBeInTheDocument();
+  });
+
+  it('should render without crashing', () => {
+    render(<App />);
+    // The app should render without crashing and show the basic structure
+    expect(screen.getByText(/Task Manager/)).toBeInTheDocument();
   });
 });
 
